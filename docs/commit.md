@@ -1,15 +1,19 @@
 # Commit
 
-Use `commit` to create clean atomic commits.
+Ask Codex to commit when the current changes are ready to save. The global `commit` skill handles the Git workflow behind the scenes.
 
 ## Good Prompts
 
 ```text
-Use commit to commit the current changes.
+Commit current changes.
 ```
 
 ```text
-Use commit and split unrelated changes into separate commits.
+Commit current changes as separate atomic commits.
+```
+
+```text
+Commit only the documentation changes.
 ```
 
 ## Behavior

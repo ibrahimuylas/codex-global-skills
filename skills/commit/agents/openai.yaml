@@ -1,4 +1,4 @@
 interface:
   display_name: "Commit"
   short_description: "Create atomic conventional commits"
-  default_prompt: "Use $commit to create atomic conventional commits for the current changes."
+  default_prompt: "Commit current changes as atomic Conventional Commits."

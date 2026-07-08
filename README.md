@@ -18,7 +18,7 @@ The intended workflow is:
 | `ee-clarify` | Refine vague ideas into scoped work | `Use ee-clarify to refine this idea.` |
 | `ee-breakdown` | Split large work into small tasks | `Use ee-breakdown to split this feature for Ralph.` |
 | `ee-control-plane` | Bootstrap architecture/convention docs | `Use ee-control-plane to set up project context.` |
-| `commit` | Atomic Conventional Commits | `Use commit to commit the current changes.` |
+| `commit` | Atomic Conventional Commits | `Commit current changes.` |
 
 Detailed docs:
 
