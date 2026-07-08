@@ -1,0 +1,4 @@
+interface:
+  display_name: "EE Control Plane"
+  short_description: "Bootstrap project architecture context"
+  default_prompt: "Use $ee-control-plane to bootstrap architecture and convention docs for this project."

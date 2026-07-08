@@ -1,0 +1,4 @@
+interface:
+  display_name: "EE Breakdown"
+  short_description: "Split large work into manageable tasks"
+  default_prompt: "Use $ee-breakdown to split this feature into small, testable tasks."

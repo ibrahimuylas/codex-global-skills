@@ -1,0 +1,4 @@
+interface:
+  display_name: "EE Clarify"
+  short_description: "Refine vague ideas into scoped work"
+  default_prompt: "Use $ee-clarify to turn this idea into a scoped work item with acceptance criteria."

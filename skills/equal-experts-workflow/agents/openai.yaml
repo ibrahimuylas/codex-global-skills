@@ -1,0 +1,4 @@
+interface:
+  display_name: "Equal Experts Workflow"
+  short_description: "Select and apply EE rules and templates"
+  default_prompt: "Use $equal-experts-workflow to select relevant Equal Experts rules and templates for this work."
