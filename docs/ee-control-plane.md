@@ -26,3 +26,5 @@ Use ee-control-plane to create architecture and convention docs for this existin
 Use this at the beginning of a project, for multi-repo systems, or when a codebase lacks shared architecture documentation.
 
 For day-to-day development, use `ralph`.
+
+After the control plane exists, use `decision-record` for individual architecture decisions instead of rerunning the bootstrap workflow.

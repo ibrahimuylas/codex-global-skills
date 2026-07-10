@@ -7,6 +7,15 @@ description: Install, apply, select, and use the Equal Experts LLM toolkit rules
 
 Use the Equal Experts LLM toolkit as a per-repository rule library. First install/apply the toolkit into the target repo when requested; then load only the rules or templates needed for the current task.
 
+## Global Skill And Toolkit Roles
+
+Keep this skill and the focused `ee-*` workflow skills as thin global wrappers. The toolkit submodule contains rules, prompts, commands, and templates, but it is not itself a discoverable Codex skill.
+
+- Use global skills for invocation, workflow, rule selection, and safety boundaries across repositories.
+- Use the shared toolkit link for one-off advice without changing a target repository.
+- Use a project-local `prompts/library` submodule when rules must be versioned and shared with that project.
+- Do not copy toolkit rule bodies into skills or create one global skill per rule.
+
 ## Apply Toolkit To A Repo
 
 When the user says "apply ee toolkit", "implement ee toolkit", or asks to add EE rules/templates to the current project:

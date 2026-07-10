@@ -1,0 +1,4 @@
+interface:
+  display_name: "Debug"
+  short_description: "Reproduce and isolate software failures"
+  default_prompt: "Use $debug to reproduce this failure, isolate its cause, and recommend the smallest next step."

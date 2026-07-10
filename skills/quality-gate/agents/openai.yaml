@@ -1,0 +1,4 @@
+interface:
+  display_name: "Quality Gate"
+  short_description: "Run project checks and report readiness"
+  default_prompt: "Use $quality-gate to run the repository checks and report whether this change is ready."

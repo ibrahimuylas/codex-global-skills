@@ -1,0 +1,4 @@
+interface:
+  display_name: "Decision Record"
+  short_description: "Create and maintain focused ADRs"
+  default_prompt: "Use $decision-record to capture this architectural decision using the repository's ADR convention."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dependency Maintenance"
+  short_description: "Plan and verify safe dependency updates"
+  default_prompt: "Use $dependency-maintenance to assess and update dependencies in small, verified batches."

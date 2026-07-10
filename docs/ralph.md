@@ -48,3 +48,5 @@ Project-specific `ralph init` still happens inside each target project when the 
 2. Use `ee-breakdown` if the work is too large.
 3. Apply EE toolkit to the repo once if you want project-local rules.
 4. Use `ralph` to create specs, plan, and run build iterations.
+5. Use `quality-gate` and `local-review` before `commit`.
+6. Use `release-readiness` before tagging or publishing.

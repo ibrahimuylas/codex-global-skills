@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Readiness"
+  short_description: "Check whether a release is ready"
+  default_prompt: "Use $release-readiness to assess this repository for a safe release without publishing anything."

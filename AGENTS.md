@@ -23,6 +23,9 @@ When the user asks to "check global skills", "doctor global skills", "verify glo
 
 - Keep install/update behavior in shell scripts so new developers can run the same flow outside Codex.
 - Global Codex skills live under `skills/<skill-name>/`.
+- Every skill must include a concise `SKILL.md` and matching `agents/openai.yaml` metadata.
 - Human documentation lives in `README.md` and `docs/`; keep `SKILL.md` concise.
 - External reusable toolkits should be git submodules under `vendor/`.
 - Do not copy large third-party rule sets into skill bodies.
+- Add or update developer-facing examples whenever a skill is added or its invocation changes.
+- Run `./validate.sh` for source validation, use the skill-creator validator for new or substantially changed skills, and run `./doctor.sh` after installation.

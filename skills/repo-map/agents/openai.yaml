@@ -1,0 +1,4 @@
+interface:
+  display_name: "Repository Map"
+  short_description: "Map an unfamiliar repository quickly"
+  default_prompt: "Use $repo-map to map this repository's structure, entry points, commands, and data flow."

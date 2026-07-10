@@ -48,19 +48,32 @@ echo ""
 check_path "$SCRIPT_DIR/vendor/equalexperts/llm-toolkit/rules" "EE toolkit rules"
 
 echo ""
-for skill in ralph equal-experts-workflow ee-clarify ee-breakdown ee-control-plane commit; do
-  check_path "$SKILLS_DEST/$skill/SKILL.md" "installed skill $skill"
-done
+skill_count=0
+for skill_dir in "$SCRIPT_DIR/skills"/*; do
+  [[ -d "$skill_dir" ]] || continue
 
-echo ""
-for skill in equal-experts-workflow ee-clarify ee-breakdown ee-control-plane; do
-  if [[ -L "$SKILLS_DEST/$skill/toolkit" || -d "$SKILLS_DEST/$skill/toolkit" ]]; then
-    echo "[OK] EE toolkit linked for $skill"
-  else
-    echo "[FAIL] EE toolkit not linked for $skill"
-    status=1
+  skill="$(basename "$skill_dir")"
+  skill_count=$((skill_count + 1))
+
+  check_path "$skill_dir/SKILL.md" "source SKILL.md for $skill"
+  check_path "$skill_dir/agents/openai.yaml" "source agents/openai.yaml for $skill"
+  check_path "$SKILLS_DEST/$skill/SKILL.md" "installed SKILL.md for $skill"
+  check_path "$SKILLS_DEST/$skill/agents/openai.yaml" "installed agents/openai.yaml for $skill"
+
+  if [[ "$skill" == "equal-experts-workflow" || "$skill" == ee-* ]]; then
+    if [[ -L "$SKILLS_DEST/$skill/toolkit" || -d "$SKILLS_DEST/$skill/toolkit" ]]; then
+      echo "[OK] EE toolkit linked for $skill"
+    else
+      echo "[FAIL] EE toolkit not linked for $skill"
+      status=1
+    fi
   fi
 done
+
+if [[ "$skill_count" -eq 0 ]]; then
+  echo "[FAIL] no skill directories found under $SCRIPT_DIR/skills"
+  status=1
+fi
 
 echo ""
 if command -v docker >/dev/null 2>&1; then

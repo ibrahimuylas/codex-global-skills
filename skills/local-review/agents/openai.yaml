@@ -1,0 +1,4 @@
+interface:
+  display_name: "Local Review"
+  short_description: "Review local diffs for actionable defects"
+  default_prompt: "Use $local-review to review the current local diff for actionable defects and test gaps."

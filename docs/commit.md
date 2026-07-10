@@ -24,6 +24,8 @@ Commit only the documentation changes.
 - writes Conventional Commit messages
 - avoids committing Ralph loop artifacts unless explicitly requested
 
+Run `quality-gate` and `local-review` first when the change needs verification or review evidence. The `commit` skill does not silently substitute for either workflow.
+
 ## Commit Format
 
 ```text
