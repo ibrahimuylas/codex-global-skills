@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Workflow"
+  short_description: "Safely manage Git branches, pushes, and PRs"
+  default_prompt: "Use $git-workflow to perform the requested Git branch, sync, push, pull-request, or history operation safely."

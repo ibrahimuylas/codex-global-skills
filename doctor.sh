@@ -2,7 +2,12 @@
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILLS_DEST="${CODEX_HOME:-$HOME/.codex}/skills"
+CODEX_CONFIG_DIR="${CODEX_HOME:-$HOME/.codex}"
+SKILLS_DEST="$CODEX_CONFIG_DIR/skills"
+GUIDANCE_SRC="$SCRIPT_DIR/guidance/git-safety.md"
+GLOBAL_AGENTS_FILE="$CODEX_CONFIG_DIR/AGENTS.md"
+GIT_GUIDANCE_START="<!-- codex-global-skills:git-safety:start -->"
+GIT_GUIDANCE_END="<!-- codex-global-skills:git-safety:end -->"
 BIN_DIR="${RALPH_BIN_DIR:-$HOME/.local/bin}"
 status=0
 
@@ -27,6 +32,60 @@ check_path() {
   fi
 }
 
+check_global_git_guidance() {
+  local begin_count
+  local end_count
+  local installed_guidance
+
+  if [[ ! -s "$GUIDANCE_SRC" ]]; then
+    echo "[FAIL] missing or empty source Git guidance: $GUIDANCE_SRC"
+    status=1
+    return
+  fi
+  echo "[OK] source Git guidance: $GUIDANCE_SRC"
+
+  if [[ -L "$GLOBAL_AGENTS_FILE" ]]; then
+    echo "[FAIL] global AGENTS.md must not be a symbolic link: $GLOBAL_AGENTS_FILE"
+    status=1
+    return
+  fi
+
+  if [[ ! -f "$GLOBAL_AGENTS_FILE" ]]; then
+    echo "[FAIL] missing global AGENTS.md: $GLOBAL_AGENTS_FILE"
+    status=1
+    return
+  fi
+
+  begin_count="$(grep -Fxc -- "$GIT_GUIDANCE_START" "$GLOBAL_AGENTS_FILE" || true)"
+  end_count="$(grep -Fxc -- "$GIT_GUIDANCE_END" "$GLOBAL_AGENTS_FILE" || true)"
+  if [[ "$begin_count" -ne 1 || "$end_count" -ne 1 ]]; then
+    echo "[FAIL] expected one managed Git guidance marker pair in $GLOBAL_AGENTS_FILE"
+    status=1
+    return
+  fi
+  echo "[OK] managed Git guidance markers: $GLOBAL_AGENTS_FILE"
+
+  installed_guidance="$(mktemp "${TMPDIR:-/tmp}/codex-global-skills-guidance.XXXXXX")"
+  awk -v start="$GIT_GUIDANCE_START" -v finish="$GIT_GUIDANCE_END" '
+    $0 == start { managed = 1; next }
+    $0 == finish { managed = 0; found_end = 1; exit }
+    managed { print }
+    END {
+      if (!found_end) {
+        exit 1
+      }
+    }
+  ' "$GLOBAL_AGENTS_FILE" > "$installed_guidance"
+
+  if cmp -s "$GUIDANCE_SRC" "$installed_guidance"; then
+    echo "[OK] installed Git guidance matches source"
+  else
+    echo "[FAIL] installed Git guidance differs from $GUIDANCE_SRC"
+    status=1
+  fi
+  rm -f "$installed_guidance"
+}
+
 echo "Codex global skills doctor"
 echo ""
 
@@ -46,6 +105,9 @@ fi
 
 echo ""
 check_path "$SCRIPT_DIR/vendor/equalexperts/llm-toolkit/rules" "EE toolkit rules"
+
+echo ""
+check_global_git_guidance
 
 echo ""
 skill_count=0

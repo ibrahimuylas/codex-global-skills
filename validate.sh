@@ -2,6 +2,7 @@
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GUIDANCE_SRC="$SCRIPT_DIR/guidance/git-safety.md"
 status=0
 
 ok() {
@@ -23,6 +24,16 @@ for script in install.sh update.sh doctor.sh validate.sh; do
     fail "shell syntax: $script"
   fi
 done
+
+echo ""
+if [[ -s "$GUIDANCE_SRC" ]] &&
+  grep -Fqx "## Git safety and working agreements" "$GUIDANCE_SRC" &&
+  grep -Eq '^- ' "$GUIDANCE_SRC" &&
+  ! grep -Fq '<!-- codex-global-skills:git-safety:' "$GUIDANCE_SRC"; then
+  ok "global Git guidance source"
+else
+  fail "missing or invalid guidance/git-safety.md"
+fi
 
 echo ""
 skill_count=0
@@ -99,13 +110,13 @@ if [[ "$skill_count" -eq 0 ]]; then
 fi
 
 echo ""
-if grep -R -n -E 'TODO|\[TODO' "$SCRIPT_DIR/skills"; then
-  fail "skill templates still contain TODO markers"
+if grep -R -n -E 'TODO|\[TODO' "$SCRIPT_DIR/skills" "$SCRIPT_DIR/guidance"; then
+  fail "skill or guidance files still contain TODO markers"
 else
-  ok "no skill TODO markers"
+  ok "no skill or guidance TODO markers"
 fi
 
-if grep -R -n -E '[[:blank:]]+$' "$SCRIPT_DIR/AGENTS.md" "$SCRIPT_DIR/README.md" "$SCRIPT_DIR/docs" "$SCRIPT_DIR/skills" "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/update.sh" "$SCRIPT_DIR/doctor.sh" "$SCRIPT_DIR/validate.sh"; then
+if grep -R -n -E '[[:blank:]]+$' "$SCRIPT_DIR/AGENTS.md" "$SCRIPT_DIR/README.md" "$SCRIPT_DIR/docs" "$SCRIPT_DIR/skills" "$SCRIPT_DIR/guidance" "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/update.sh" "$SCRIPT_DIR/doctor.sh" "$SCRIPT_DIR/validate.sh"; then
   fail "trailing whitespace found"
 else
   ok "no trailing whitespace"

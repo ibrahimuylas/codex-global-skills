@@ -28,4 +28,7 @@ When the user asks to "check global skills", "doctor global skills", "verify glo
 - External reusable toolkits should be git submodules under `vendor/`.
 - Do not copy large third-party rule sets into skill bodies.
 - Add or update developer-facing examples whenever a skill is added or its invocation changes.
+- Keep always-on global Git guidance small, safety-focused, and repository-agnostic. Put repeatable Git procedures in `commit` or `git-workflow`, and leave branch, ticket, merge, signing, and release conventions to project-local guidance.
+- Preserve user-authored content outside `<!-- codex-global-skills:git-safety:start -->` and `<!-- codex-global-skills:git-safety:end -->` in `${CODEX_HOME:-$HOME/.codex}/AGENTS.md`. Changes to the managed block or its markers must remain idempotent and backward compatible with an existing global file.
+- A request to commit does not imply push, and a request to push does not imply creating a pull request. Document and preserve these authorization boundaries in Git-related skills.
 - Run `./validate.sh` for source validation, use the skill-creator validator for new or substantially changed skills, and run `./doctor.sh` after installation.

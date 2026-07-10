@@ -1,4 +1,4 @@
 interface:
   display_name: "Commit"
-  short_description: "Create atomic conventional commits"
-  default_prompt: "Use $commit to commit current changes as atomic Conventional Commits."
+  short_description: "Create atomic commits using repository conventions"
+  default_prompt: "Use $commit to create atomic commits that follow this repository's conventions."
