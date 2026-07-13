@@ -190,6 +190,7 @@ validate_ralph_pin() {
   local assignment_count
   local revision
   local cli_hash
+  local global_skill_defaults_hash
   local codex_version
   local devcontainer_version
   local plan_prompt_hash
@@ -206,10 +207,11 @@ validate_ralph_pin() {
     return
   fi
   assignment_count="$(grep -Ec '^[A-Z0-9_]+=' "$pin_file" || true)"
-  if [[ "$assignment_count" -ne 12 ]] ||
+  if [[ "$assignment_count" -ne 13 ]] ||
     ! grep -Eq '^RALPH_PIN_REPO_URL=https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\.git$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_REVISION=[0-9a-f]{40}$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_CLI_SHA256=[0-9a-f]{64}$' "$pin_file" ||
+    ! grep -Eq '^RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256=[0-9a-f]{64}$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_CODEX_VERSION=[0-9]+\.[0-9]+\.[0-9]+$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_DEVCONTAINER_VERSION=[0-9]+\.[0-9]+\.[0-9]+$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_PLAN_PROMPT_SHA256=[0-9a-f]{64}$' "$pin_file" ||
@@ -225,6 +227,7 @@ validate_ralph_pin() {
 
   revision="$(sed -n 's/^RALPH_PIN_REVISION=//p' "$pin_file")"
   cli_hash="$(sed -n 's/^RALPH_PIN_CLI_SHA256=//p' "$pin_file")"
+  global_skill_defaults_hash="$(sed -n 's/^RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256=//p' "$pin_file")"
   codex_version="$(sed -n 's/^RALPH_PIN_CODEX_VERSION=//p' "$pin_file")"
   devcontainer_version="$(sed -n 's/^RALPH_PIN_DEVCONTAINER_VERSION=//p' "$pin_file")"
   plan_prompt_hash="$(sed -n 's/^RALPH_PIN_PLAN_PROMPT_SHA256=//p' "$pin_file")"
@@ -236,7 +239,7 @@ validate_ralph_pin() {
   runtime_id="$(sed -n 's/^RALPH_PIN_RUNTIME_ID=//p' "$pin_file")"
   computed_runtime_id="$({
     sed -n 's/^RALPH_PIN_REPO_URL=//p' "$pin_file"
-    printf '%s\n' "$revision" "$cli_hash" "$plan_prompt_hash" "$prompt_hash" "$container_hash" "$devcontainer_hash"
+    printf '%s\n' "$revision" "$cli_hash" "$global_skill_defaults_hash" "$plan_prompt_hash" "$prompt_hash" "$container_hash" "$devcontainer_hash"
   } | sha256_stream)"
   [[ "$runtime_id" == "$computed_runtime_id" ]] || fail "Ralph runtime ID does not match its source/CLI/config contract"
   grep -Fq "$revision" "$SCRIPT_DIR/README.md" || fail "README does not document the Ralph pin revision"
@@ -244,6 +247,10 @@ validate_ralph_pin() {
   grep -Fqx "DEVCONTAINER_REQUIRED_VERSION=$devcontainer_version" "$SCRIPT_DIR/pins/cli.env" || fail "Ralph and global devcontainer CLI pins differ"
   verify_regular_file_sha256 "$SCRIPT_DIR/skills/ralph/assets/Dockerfile.safe" "$safe_container_hash" || fail "guarded Ralph Dockerfile differs from its pin"
   verify_regular_file_sha256 "$SCRIPT_DIR/skills/ralph/assets/devcontainer.safe.json" "$safe_devcontainer_hash" || fail "guarded Ralph devcontainer config differs from its pin"
+  verify_regular_file_sha256 "$SCRIPT_DIR/skills/ralph/assets/global-skill.env" "$global_skill_defaults_hash" ||
+    fail "guarded Ralph global-skill defaults differ from their pin"
+  grep -Fqx 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$SCRIPT_DIR/skills/ralph/assets/global-skill.env" ||
+    fail "guarded Ralph global-skill defaults do not select Codex"
   grep -Fq "@openai/codex@$codex_version" "$SCRIPT_DIR/skills/ralph/assets/Dockerfile.safe" || fail "guarded Ralph Dockerfile does not use the Codex pin"
   if grep -Eq 'docker\.sock|network=host|localEnv:HOME|/home/node/\.ssh|/home/node/\.config/gh' "$SCRIPT_DIR/skills/ralph/assets/devcontainer.safe.json"; then
     fail "guarded Ralph devcontainer exposes a host escape or host credential mount"
@@ -260,6 +267,7 @@ validate_ralph_pin() {
     grep -RFq "$prompt_hash" "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/doctor.sh" "$SCRIPT_DIR/skills/ralph/scripts" ||
     grep -RFq "$container_hash" "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/doctor.sh" "$SCRIPT_DIR/skills/ralph/scripts" ||
     grep -RFq "$devcontainer_hash" "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/doctor.sh" "$SCRIPT_DIR/skills/ralph/scripts" ||
+    grep -RFq "$global_skill_defaults_hash" "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/doctor.sh" "$SCRIPT_DIR/skills/ralph/scripts" ||
     grep -RFq "$safe_container_hash" "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/doctor.sh" "$SCRIPT_DIR/skills/ralph/scripts" ||
     grep -RFq "$safe_devcontainer_hash" "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/doctor.sh" "$SCRIPT_DIR/skills/ralph/scripts"; then
     fail "Ralph hashes are duplicated outside the shared pin contract"

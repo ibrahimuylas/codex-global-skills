@@ -32,6 +32,7 @@ if [[ -z "${RALPH_CONFIG_DIR+x}" ]]; then
     RALPH_CONFIG_DIR="$RALPH_RUNTIME_DIR/config"
   fi
 fi
+RALPH_GLOBAL_SKILL_DEFAULTS_FILE="$RALPH_CONFIG_DIR/global-skill.env"
 
 if [[ -n "${RALPH_BIN_PATH+x}" ]]; then
   RALPH_BINARY="$RALPH_BIN_PATH"
@@ -417,6 +418,17 @@ if [[ ! -f "$SAFE_TEMPLATE" || -L "$SAFE_TEMPLATE" || ! -x "$PREPARE_PROMPT" || 
   echo "Bundled guarded $MODE prompt resources are missing or invalid" >&2
   exit 1
 fi
+if [[ ! -f "$RALPH_GLOBAL_SKILL_DEFAULTS_FILE" || -L "$RALPH_GLOBAL_SKILL_DEFAULTS_FILE" ]] ||
+  [[ "$(sha256_file "$RALPH_GLOBAL_SKILL_DEFAULTS_FILE")" != "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256" ]]; then
+  echo "Managed Ralph global-skill defaults are missing or modified: $RALPH_GLOBAL_SKILL_DEFAULTS_FILE" >&2
+  exit 1
+fi
+# shellcheck source=../assets/global-skill.env
+source "$RALPH_GLOBAL_SKILL_DEFAULTS_FILE"
+if [[ "${RALPH_GLOBAL_SKILL_BACKEND:-}" != "codex" ]]; then
+  echo "Managed Ralph global skill must use the Codex backend" >&2
+  exit 1
+fi
 normalize_ralph_arguments "$@"
 
 if [[ -e "$LOCAL_PROMPT" || -L "$LOCAL_PROMPT" ]]; then
@@ -471,7 +483,7 @@ fi
 if [[ "$MODE" == "build" ]]; then
   ralph_arguments+=(--iterations 1)
 fi
-ralph_arguments+=(--backend codex)
+ralph_arguments+=(--backend "$RALPH_GLOBAL_SKILL_BACKEND")
 env "${environment[@]}" "$RALPH_BINARY" "$MODE" "${ralph_arguments[@]}" || ralph_status=$?
 head_identity_after="$(snapshot_head_identity)"
 repository_security_after="$(snapshot_repository_security_metadata)"

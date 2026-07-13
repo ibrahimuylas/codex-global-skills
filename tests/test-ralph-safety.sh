@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/codex-global-skills-ralph.XXXXXX")"
 TEST_RUNTIME="$TEST_ROOT/ralph-skill"
 TEST_CODEX_BIN="$TEST_ROOT/codex-bin"
+export CODEX_GLOBAL_SKILLS_HOME="$TEST_ROOT/state"
 mkdir -p "$TEST_RUNTIME"
 cp -R "$ROOT/skills/ralph/scripts" "$TEST_RUNTIME/scripts"
 cp -R "$ROOT/skills/ralph/assets" "$TEST_RUNTIME/assets"
@@ -55,6 +56,10 @@ set_test_pin_value() {
 
 set_test_ralph_pin() {
   set_test_pin_value RALPH_PIN_CLI_SHA256 "$(sha256_file "$1")"
+  local runtime_id
+  runtime_id="$(awk -F= '$1 == "RALPH_PIN_RUNTIME_ID" { print $2 }' "$TEST_RUNTIME/assets/ralph-pin.env")"
+  mkdir -p "$CODEX_GLOBAL_SKILLS_HOME/ralph-runtimes/$runtime_id/config"
+  cp "$TEST_RUNTIME/assets/global-skill.env" "$CODEX_GLOBAL_SKILLS_HOME/ralph-runtimes/$runtime_id/config/global-skill.env"
 }
 
 set_test_sandbox_pin() {
@@ -68,6 +73,8 @@ set_test_sandbox_pin() {
   set_test_pin_value RALPH_PIN_CODEX_VERSION "$codex_version"
   set_test_pin_value RALPH_PIN_PLAN_PROMPT_SHA256 "$(sha256_file "$config/prompts/plan.md")"
   set_test_pin_value RALPH_PIN_BUILD_PROMPT_SHA256 "$(sha256_file "$config/prompts/build.md")"
+  cp "$TEST_RUNTIME/assets/global-skill.env" "$config/global-skill.env"
+  set_test_pin_value RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256 "$(sha256_file "$config/global-skill.env")"
   set_test_pin_value RALPH_PIN_CONTAINER_DOCKERFILE_SHA256 "$(sha256_file "$config/container/Dockerfile")"
   set_test_pin_value RALPH_PIN_CONTAINER_DEVCONTAINER_SHA256 "$(sha256_file "$config/container/devcontainer.json")"
   set_test_pin_value RALPH_PIN_SAFE_DOCKERFILE_SHA256 "$(sha256_file "$safe_dockerfile")"
@@ -76,8 +83,13 @@ set_test_sandbox_pin() {
 
 write_unsafe_prompt() {
   local destination="$1"
+  local config_dir
 
   mkdir -p "$(dirname "$destination")"
+  if [[ "$destination" == */prompts/build.md ]]; then
+    config_dir="$(dirname "$(dirname "$destination")")"
+    cp "$TEST_RUNTIME/assets/global-skill.env" "$config_dir/global-skill.env"
+  fi
   printf '%s\n' \
     '# Build Agent' \
     '- If tests unrelated to your work fail, resolve them as part of this increment' \
@@ -89,8 +101,13 @@ write_unsafe_prompt() {
 
 write_unsafe_plan_prompt() {
   local destination="$1"
+  local config_dir
 
   mkdir -p "$(dirname "$destination")"
+  if [[ "$destination" == */prompts/plan.md ]]; then
+    config_dir="$(dirname "$(dirname "$destination")")"
+    cp "$TEST_RUNTIME/assets/global-skill.env" "$config_dir/global-skill.env"
+  fi
   printf '%s\n' \
     '# Planning Agent' \
     'You are a planning agent in an autonomous loop.' \
@@ -576,6 +593,7 @@ test_runner_fails_when_backend_changes_reviewed_prompt() {
   git -C "$repository" config user.email 'codex-test@example.invalid'
   git -C "$repository" commit -q --allow-empty -m 'base'
   mkdir -p "$config/prompts"
+  cp "$TEST_RUNTIME/assets/global-skill.env" "$config/global-skill.env"
   cp "$SAFE_TEMPLATE" "$repository/PROMPT_build.md"
   printf '%s\n' '#!/usr/bin/env bash' 'printf "%s\n" tampered >> PROMPT_build.md' > "$managed_ralph"
   chmod +x "$managed_ralph"
@@ -809,6 +827,7 @@ test_runner_resolves_devcontainer_mount() {
   git -C "$repository" config user.email 'codex-test@example.invalid'
   git -C "$repository" commit -q --allow-empty -m 'base'
   mkdir -p "$config/prompts"
+  cp "$TEST_RUNTIME/assets/global-skill.env" "$config/global-skill.env"
   cp "$SAFE_TEMPLATE" "$repository/PROMPT_build.md"
   printf '%s\n' \
     '#!/usr/bin/env bash' \
@@ -822,6 +841,7 @@ test_runner_resolves_devcontainer_mount() {
     DEVCONTAINER=true \
       HOME="$TEST_ROOT/container-home" \
       RALPH_SANDBOX_BIN_PATH="$managed_ralph" \
+      RALPH_CONFIG_DIR="$config" \
       RALPH_TEST_ROOT="$TEST_ROOT" \
       "$RUN_SAFE"
   )

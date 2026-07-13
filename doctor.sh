@@ -23,6 +23,7 @@ RALPH_REVISION="$RALPH_PIN_REVISION"
 RALPH_RUNTIME_DIR="$STATE_DIR/ralph-runtimes/$RALPH_PIN_RUNTIME_ID"
 BIN_DIR="${RALPH_BIN_DIR:-$RALPH_RUNTIME_DIR/bin}"
 RALPH_CONFIG_DIR="${RALPH_CONFIG_DIR:-$RALPH_RUNTIME_DIR/config}"
+RALPH_DEFAULTS_FILE="$RALPH_CONFIG_DIR/global-skill.env"
 CLI_PIN_FILE="$SCRIPT_DIR/pins/cli.env"
 if [[ ! -f "$CLI_PIN_FILE" || -L "$CLI_PIN_FILE" ]]; then
   echo "[FAIL] Reviewed CLI pin contract is missing or invalid: $CLI_PIN_FILE"
@@ -314,6 +315,12 @@ check_dependencies() {
           ok "pinned Ralph CLI: $managed_ralph"
         else
           fail "managed Ralph CLI is missing, non-executable, or differs from the reviewed pin"
+        fi
+        if verify_regular_file_sha256 "$RALPH_DEFAULTS_FILE" "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256" &&
+          grep -Fxq 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$RALPH_DEFAULTS_FILE"; then
+          ok "managed Ralph global-skill defaults use Codex"
+        else
+          fail "managed Ralph global-skill defaults are missing, modified, or not set to Codex"
         fi
         if verify_regular_file_sha256 "$RALPH_CONFIG_DIR/prompts/build.md" "$RALPH_PIN_BUILD_PROMPT_SHA256"; then
           ok "pinned Ralph build prompt"

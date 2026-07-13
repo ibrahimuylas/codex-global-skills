@@ -26,6 +26,7 @@ RALPH_REVISION="$RALPH_PIN_REVISION"
 RALPH_RUNTIME_DIR="$STATE_DIR/ralph-runtimes/$RALPH_PIN_RUNTIME_ID"
 BIN_DIR="${RALPH_BIN_DIR:-$RALPH_RUNTIME_DIR/bin}"
 RALPH_CONFIG_DIR="${RALPH_CONFIG_DIR:-$RALPH_RUNTIME_DIR/config}"
+RALPH_DEFAULTS_SRC="$SCRIPT_DIR/skills/ralph/assets/global-skill.env"
 CLI_PIN_FILE="$SCRIPT_DIR/pins/cli.env"
 if [[ ! -f "$CLI_PIN_FILE" || -L "$CLI_PIN_FILE" ]]; then
   echo "Reviewed CLI pin contract is missing or invalid: $CLI_PIN_FILE" >&2
@@ -639,6 +640,7 @@ preflight_ralph_source() {
 verify_pinned_ralph_install() {
   verify_regular_file_sha256 "$BIN_DIR/ralph" "$RALPH_PIN_CLI_SHA256" &&
     [[ -x "$BIN_DIR/ralph" ]] &&
+    verify_regular_file_sha256 "$RALPH_CONFIG_DIR/global-skill.env" "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256" &&
     verify_regular_file_sha256 "$RALPH_CONFIG_DIR/prompts/plan.md" "$RALPH_PIN_PLAN_PROMPT_SHA256" &&
     verify_regular_file_sha256 "$RALPH_CONFIG_DIR/prompts/build.md" "$RALPH_PIN_BUILD_PROMPT_SHA256" &&
     verify_regular_file_sha256 "$RALPH_CONFIG_DIR/container/Dockerfile" "$RALPH_PIN_CONTAINER_DOCKERFILE_SHA256" &&
@@ -721,12 +723,14 @@ install_reviewed_ralph_runtime() {
   preflight_ralph_runtime_directory "$RALPH_CONFIG_DIR" || return 1
   preflight_ralph_runtime_directory "$RALPH_CONFIG_DIR/prompts" || return 1
   preflight_ralph_runtime_directory "$RALPH_CONFIG_DIR/container" || return 1
+  preflight_ralph_runtime_file "$RALPH_DEFAULTS_SRC" "$RALPH_CONFIG_DIR/global-skill.env" "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256" 644 || return 1
   preflight_ralph_runtime_file "$cli_source" "$BIN_DIR/ralph" "$RALPH_PIN_CLI_SHA256" 755 || return 1
   preflight_ralph_runtime_file "$plan_source" "$RALPH_CONFIG_DIR/prompts/plan.md" "$RALPH_PIN_PLAN_PROMPT_SHA256" 644 || return 1
   preflight_ralph_runtime_file "$build_source" "$RALPH_CONFIG_DIR/prompts/build.md" "$RALPH_PIN_BUILD_PROMPT_SHA256" 644 || return 1
   preflight_ralph_runtime_file "$docker_source" "$RALPH_CONFIG_DIR/container/Dockerfile" "$RALPH_PIN_CONTAINER_DOCKERFILE_SHA256" 644 || return 1
   preflight_ralph_runtime_file "$devcontainer_source" "$RALPH_CONFIG_DIR/container/devcontainer.json" "$RALPH_PIN_CONTAINER_DEVCONTAINER_SHA256" 644 || return 1
 
+  publish_ralph_runtime_file "$RALPH_DEFAULTS_SRC" "$RALPH_CONFIG_DIR/global-skill.env" "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256" 644 || return 1
   publish_ralph_runtime_file "$cli_source" "$BIN_DIR/ralph" "$RALPH_PIN_CLI_SHA256" 755 || return 1
   publish_ralph_runtime_file "$plan_source" "$RALPH_CONFIG_DIR/prompts/plan.md" "$RALPH_PIN_PLAN_PROMPT_SHA256" 644 || return 1
   publish_ralph_runtime_file "$build_source" "$RALPH_CONFIG_DIR/prompts/build.md" "$RALPH_PIN_BUILD_PROMPT_SHA256" 644 || return 1

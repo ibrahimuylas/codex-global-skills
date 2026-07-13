@@ -6,6 +6,7 @@ SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PIN_FILE="$SCRIPT_DIR/../assets/ralph-pin.env"
 SAFE_DOCKERFILE="$SCRIPT_DIR/../assets/Dockerfile.safe"
 SAFE_DEVCONTAINER="$SCRIPT_DIR/../assets/devcontainer.safe.json"
+GLOBAL_SKILL_DEFAULTS="$SCRIPT_DIR/../assets/global-skill.env"
 STATE_DIR="${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}"
 SANDBOX_CONFIG_PARENT="$STATE_DIR/ralph-sandbox-configs"
 SANDBOX_SKILL_PARENT="$STATE_DIR/ralph-sandbox-skills"
@@ -108,10 +109,12 @@ verify_source_config() {
   [[ -d "$HOST_RALPH_CONFIG_DIR" && ! -L "$HOST_RALPH_CONFIG_DIR" ]] &&
     [[ -f "$HOST_RALPH_CONFIG_DIR/prompts/plan.md" && ! -L "$HOST_RALPH_CONFIG_DIR/prompts/plan.md" ]] &&
     [[ -f "$HOST_RALPH_CONFIG_DIR/prompts/build.md" && ! -L "$HOST_RALPH_CONFIG_DIR/prompts/build.md" ]] &&
+    [[ -f "$HOST_RALPH_CONFIG_DIR/global-skill.env" && ! -L "$HOST_RALPH_CONFIG_DIR/global-skill.env" ]] &&
     [[ -f "$HOST_RALPH_CONFIG_DIR/container/Dockerfile" && ! -L "$HOST_RALPH_CONFIG_DIR/container/Dockerfile" ]] &&
     [[ -f "$HOST_RALPH_CONFIG_DIR/container/devcontainer.json" && ! -L "$HOST_RALPH_CONFIG_DIR/container/devcontainer.json" ]] &&
     [[ "$(sha256_file "$HOST_RALPH_CONFIG_DIR/prompts/plan.md")" == "$RALPH_PIN_PLAN_PROMPT_SHA256" ]] &&
     [[ "$(sha256_file "$HOST_RALPH_CONFIG_DIR/prompts/build.md")" == "$RALPH_PIN_BUILD_PROMPT_SHA256" ]] &&
+    [[ "$(sha256_file "$HOST_RALPH_CONFIG_DIR/global-skill.env")" == "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256" ]] &&
     [[ "$(sha256_file "$HOST_RALPH_CONFIG_DIR/container/Dockerfile")" == "$RALPH_PIN_CONTAINER_DOCKERFILE_SHA256" ]] &&
     [[ "$(sha256_file "$HOST_RALPH_CONFIG_DIR/container/devcontainer.json")" == "$RALPH_PIN_CONTAINER_DEVCONTAINER_SHA256" ]]
 }
@@ -119,8 +122,10 @@ verify_source_config() {
 verify_safe_assets() {
   [[ -f "$SAFE_DOCKERFILE" && ! -L "$SAFE_DOCKERFILE" ]] &&
     [[ -f "$SAFE_DEVCONTAINER" && ! -L "$SAFE_DEVCONTAINER" ]] &&
+    [[ -f "$GLOBAL_SKILL_DEFAULTS" && ! -L "$GLOBAL_SKILL_DEFAULTS" ]] &&
     [[ "$(sha256_file "$SAFE_DOCKERFILE")" == "$RALPH_PIN_SAFE_DOCKERFILE_SHA256" ]] &&
-    [[ "$(sha256_file "$SAFE_DEVCONTAINER")" == "$RALPH_PIN_SAFE_DEVCONTAINER_SHA256" ]]
+    [[ "$(sha256_file "$SAFE_DEVCONTAINER")" == "$RALPH_PIN_SAFE_DEVCONTAINER_SHA256" ]] &&
+    [[ "$(sha256_file "$GLOBAL_SKILL_DEFAULTS")" == "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256" ]]
 }
 
 verify_sandbox_payload() {
@@ -128,12 +133,14 @@ verify_sandbox_payload() {
     [[ -f "$SANDBOX_CONFIG_DIR/.managed" && ! -L "$SANDBOX_CONFIG_DIR/.managed" ]] &&
     [[ -f "$SANDBOX_CONFIG_DIR/prompts/plan.md" && ! -L "$SANDBOX_CONFIG_DIR/prompts/plan.md" ]] &&
     [[ -f "$SANDBOX_CONFIG_DIR/prompts/build.md" && ! -L "$SANDBOX_CONFIG_DIR/prompts/build.md" ]] &&
+    [[ -f "$SANDBOX_CONFIG_DIR/global-skill.env" && ! -L "$SANDBOX_CONFIG_DIR/global-skill.env" ]] &&
     [[ -f "$SANDBOX_CONFIG_DIR/container/devcontainer.json" && ! -L "$SANDBOX_CONFIG_DIR/container/devcontainer.json" ]] &&
     [[ -f "$SANDBOX_CONFIG_DIR/container/Dockerfile" && ! -L "$SANDBOX_CONFIG_DIR/container/Dockerfile" ]] &&
     [[ -f "$SANDBOX_CONFIG_DIR/bin/ralph" && ! -L "$SANDBOX_CONFIG_DIR/bin/ralph" && -x "$SANDBOX_CONFIG_DIR/bin/ralph" ]] &&
     [[ "$(sed -n '1p' "$SANDBOX_CONFIG_DIR/.managed")" == "$SANDBOX_CONTRACT_ID" ]] &&
     [[ "$(sha256_file "$SANDBOX_CONFIG_DIR/prompts/plan.md")" == "$RALPH_PIN_PLAN_PROMPT_SHA256" ]] &&
     [[ "$(sha256_file "$SANDBOX_CONFIG_DIR/prompts/build.md")" == "$RALPH_PIN_BUILD_PROMPT_SHA256" ]] &&
+    [[ "$(sha256_file "$SANDBOX_CONFIG_DIR/global-skill.env")" == "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256" ]] &&
     [[ "$(sha256_file "$SANDBOX_CONFIG_DIR/container/devcontainer.json")" == "$RALPH_PIN_SAFE_DEVCONTAINER_SHA256" ]] &&
     [[ "$(sha256_file "$SANDBOX_CONFIG_DIR/container/Dockerfile")" == "$RALPH_PIN_SAFE_DOCKERFILE_SHA256" ]] &&
     [[ "$(sha256_file "$SANDBOX_CONFIG_DIR/bin/ralph")" == "$RALPH_PIN_CLI_SHA256" ]]
@@ -201,6 +208,7 @@ prepare_sandbox_config() {
   mkdir "$SANDBOX_CONFIG_DIR/prompts" "$SANDBOX_CONFIG_DIR/container" "$SANDBOX_CONFIG_DIR/bin"
   cp "$HOST_RALPH_CONFIG_DIR/prompts/plan.md" "$SANDBOX_CONFIG_DIR/prompts/plan.md"
   cp "$HOST_RALPH_CONFIG_DIR/prompts/build.md" "$SANDBOX_CONFIG_DIR/prompts/build.md"
+  cp "$HOST_RALPH_CONFIG_DIR/global-skill.env" "$SANDBOX_CONFIG_DIR/global-skill.env"
   cp "$SAFE_DEVCONTAINER" "$SANDBOX_CONFIG_DIR/container/devcontainer.json"
   cp "$SAFE_DOCKERFILE" "$SANDBOX_CONFIG_DIR/container/Dockerfile"
   cp "$RALPH_BINARY" "$SANDBOX_CONFIG_DIR/bin/ralph"
@@ -348,6 +356,7 @@ SANDBOX_CONTRACT_ID="$({
   printf '%s\n' "$RALPH_PIN_PLAN_PROMPT_SHA256" "$RALPH_PIN_BUILD_PROMPT_SHA256"
   printf '%s\n' "$RALPH_PIN_CONTAINER_DOCKERFILE_SHA256" "$RALPH_PIN_CONTAINER_DEVCONTAINER_SHA256"
   printf '%s\n' "$RALPH_PIN_SAFE_DOCKERFILE_SHA256" "$RALPH_PIN_SAFE_DEVCONTAINER_SHA256"
+  printf '%s\n' "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256"
   printf '%s\n' "$SOURCE_SKILL_HASH"
 } | sha256_stream)"
 SANDBOX_CONFIG_DIR="$SANDBOX_CONFIG_PARENT/$SANDBOX_CONTRACT_ID"

@@ -27,7 +27,8 @@ trap cleanup EXIT
 if ! verify_regular_file_sha256 "$RALPH_BINARY" "$RALPH_PIN_CLI_SHA256" ||
   [[ ! -x "$RALPH_BINARY" ]] ||
   ! verify_regular_file_sha256 "$RALPH_CONFIG_DIR/prompts/plan.md" "$RALPH_PIN_PLAN_PROMPT_SHA256" ||
-  ! verify_regular_file_sha256 "$RALPH_CONFIG_DIR/prompts/build.md" "$RALPH_PIN_BUILD_PROMPT_SHA256"; then
+  ! verify_regular_file_sha256 "$RALPH_CONFIG_DIR/prompts/build.md" "$RALPH_PIN_BUILD_PROMPT_SHA256" ||
+  ! verify_regular_file_sha256 "$RALPH_CONFIG_DIR/global-skill.env" "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256"; then
   echo "[SKIP] pinned Ralph CLI/config are not installed; installer and fake-runtime tests still cover source behavior"
   exit 0
 fi
@@ -46,9 +47,9 @@ refs_before="$(git -C "$WORKTREE" for-each-ref --format='%(refname)%09%(objectna
 (
   cd "$WORKTREE"
   RALPH_BIN_PATH="$RALPH_BINARY" RALPH_CONFIG_DIR="$RALPH_CONFIG_DIR" \
-    "$RUN_SAFE" -b codex -n 1 --dry-run --yes > "$LOG_DIR/ralph.log"
+    "$RUN_SAFE" -n 1 --dry-run --yes > "$LOG_DIR/ralph.log"
   RALPH_BIN_PATH="$RALPH_BINARY" RALPH_CONFIG_DIR="$RALPH_CONFIG_DIR" \
-    "$RUN_PLAN" -b codex -n 1 --dry-run --yes > "$LOG_DIR/ralph-plan.log"
+    "$RUN_PLAN" -n 1 --dry-run --yes > "$LOG_DIR/ralph-plan.log"
 )
 
 [[ ! -e "$WORKTREE/PROMPT_build.md" ]]
@@ -57,8 +58,10 @@ refs_before="$(git -C "$WORKTREE" for-each-ref --format='%(refname)%09%(objectna
 [[ "$(git -C "$WORKTREE" write-tree)" == "$index_before" ]]
 [[ "$(git -C "$WORKTREE" for-each-ref --format='%(refname)%09%(objectname)')" == "$refs_before" ]]
 grep -Fq '[dry-run] Prompt content (PROMPT_build.md with goal substituted):' "$LOG_DIR/ralph.log"
+grep -Fq -- '--backend codex' "$LOG_DIR/ralph.log"
 grep -Fq 'Do not stage files, create commits, amend history, tag, publish, or write to any remote.' "$LOG_DIR/ralph.log"
 grep -Fq '[dry-run] Prompt content (PROMPT_plan.md with goal substituted):' "$LOG_DIR/ralph-plan.log"
+grep -Fq -- '--backend codex' "$LOG_DIR/ralph-plan.log"
 grep -Fq 'Do not implement source changes, fix tests, install dependencies, or start a build item.' "$LOG_DIR/ralph-plan.log"
 
 echo "[OK] real pinned Ralph plan/build dry-runs honor the reviewed wrapper contract"
