@@ -24,8 +24,10 @@ Choose the strategy that best fits the work:
 2. Identify why it is too large or risky.
 3. Pick a decomposition strategy and state why.
 4. Produce small items with title, type, priority, dependencies, description, and acceptance criteria.
-5. Show the suggested work order and parallel opportunities.
-6. If Ralph will be used, make items small enough for one Ralph build iteration.
+5. Use the project's documented priority semantics. If none exist, use `P0` for an active critical incident or operational blocker, `P1` for high-impact or time-critical work to do next, `P2` for normal planned work by default, `P3` for lower-impact work, and `P4` for the parking lot.
+6. Map every original requirement, acceptance criterion, risk, and dependency to at least one output item. Identify intentional exclusions and remove accidental gaps or duplicate ownership.
+7. Show the suggested work order and parallel opportunities.
+8. If Ralph will be used, make items small enough for one Ralph build iteration.
 
 ## Output
 
@@ -39,7 +41,7 @@ Choose the strategy that best fits the work:
 ### Item 1: <Title>
 
 **Type:** <type>
-**Priority:** <P0-P4>
+**Priority:** <project value or P0-P4 fallback>
 **Depends on:** <None|items>
 
 **Description:**
@@ -49,7 +51,9 @@ Choose the strategy that best fits the work:
 
 ## Dependency Structure
 
+## Coverage Check
+
 ## Suggested Ralph Specs
 ```
 
-Do not over-decompose simple work. Each item should be independently understandable, testable, and valuable.
+Do not over-decompose simple work. Each item should be independently understandable, testable, and valuable. Do not silently drop or change source scope.

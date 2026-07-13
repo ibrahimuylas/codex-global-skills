@@ -1,11 +1,11 @@
 ---
 name: release-readiness
-description: Assess whether a repository is ready for a tag, package publication, deployment, release pull request, or breaking release without publishing it. Use for pre-release checks covering scope, versions, release notes, compatibility, migrations, artifacts, validation evidence, operational risk, and rollback readiness.
+description: Make an evidence-based readiness decision for a tag, package publication, deployment, release pull request, or breaking release without publishing it. Use for holistic pre-release assessment of scope, versions, release notes, compatibility, migrations, artifacts, validation evidence, operational risk, and rollback readiness. Use quality-gate when the request is only to execute repository checks.
 ---
 
 # Release Readiness
 
-Evaluate release-specific risk without tagging, publishing, deploying, pushing, or changing versions.
+Evaluate the whole release candidate without tagging, publishing, deploying, pushing, or changing versions. Consume quality-gate evidence, but do not confuse passing checks with release readiness.
 
 ## Workflow
 
@@ -14,7 +14,7 @@ Evaluate release-specific risk without tagging, publishing, deploying, pushing, 
 3. Check version declarations, changelog or release notes, API and schema compatibility, deprecations, upgrade guidance, and declared support ranges.
 4. Check database migrations, configuration changes, secrets or permissions, feature flags, deployment ordering, backward compatibility, rollback steps, and operational monitoring when relevant.
 5. Check generated files, distributable artifacts, lockfiles, licenses, provenance, packaging metadata, and reproducible build expectations required by the repository.
-6. Reuse recent `quality-gate` and `local-review` evidence when it matches the exact candidate. Otherwise run only safe, authorized checks and mark missing evidence as inconclusive.
+6. Reuse recent `quality-gate` and `local-review` evidence only when it matches the exact candidate. Otherwise run only safe, authorized checks and mark missing evidence as inconclusive. A quality-gate `PASS` is supporting evidence, not a sufficient release decision.
 7. Compare documentation and examples with the candidate behavior. Identify consumer or operator actions that must happen before, during, or after release.
 8. Assign the result:
    - `READY`: find no blockers and obtain all required evidence.
@@ -23,4 +23,4 @@ Evaluate release-specific risk without tagging, publishing, deploying, pushing, 
 
 ## Report
 
-Report blockers first, then material risks, passing evidence, unresolved checks, rollout and rollback notes, and the smallest next action. Never treat a dirty candidate, partial validation, or missing migration plan as ready.
+Report blockers first, then material risks, passing evidence, unresolved checks, rollout and rollback notes, and the smallest next action. Explain how the release-specific evidence supports the decision. Never treat a dirty candidate, quality-gate `PASS` alone, partial validation, or a missing migration plan as ready.

@@ -2,9 +2,11 @@
 
 Portable global Codex skills for taking software work from an unclear idea to a verified release. The collection combines focused repository workflows, Ralph's implementation loop, selected Equal Experts (EE) workflows, and a small set of Git safety rules that apply across repositories.
 
+The current catalog is developer-focused. Packs now provide the reusable architecture for future writer, business-analysis, endurance-athlete, or automation-runner collections, but those role-specific skills are not claimed or installed yet.
+
 ## How To Use The Skills
 
-Run `./install.sh` once, then start a new Codex task. Codex discovers each installed skill from its `SKILL.md` metadata and loads the full instructions when a request matches. Name a skill explicitly when you want a particular workflow:
+Install the default `developer` pack once, then start a new Codex task. Codex discovers each installed skill from its `SKILL.md` metadata and loads the full instructions when a request matches. Name a skill explicitly when you want a particular workflow:
 
 ```text
 Use $repo-map to show me where this change belongs.
@@ -21,15 +23,15 @@ Natural-language requests such as `Run every project check and tell me whether t
 | `ee-clarify` | Turn a vague idea into scoped, testable work | `Use $ee-clarify to refine this checkout idea.` |
 | `ee-breakdown` | Split large or risky work into manageable items | `Use $ee-breakdown to create Ralph-sized tasks.` |
 | `decision-record` | Capture a durable architecture decision (ADR) | `Use $decision-record to record why we chose PostgreSQL.` |
-| `equal-experts-workflow` | Apply the EE toolkit and select relevant rules | `Use $equal-experts-workflow to apply the EE toolkit to this repo.` |
-| `ralph` | Create specs, plan work, and run implementation iterations | `Use $ralph to implement one iteration. Do not push.` |
+| `equal-experts-workflow` | Safely install or update the EE toolkit and select relevant rules | `Use $equal-experts-workflow to apply the EE toolkit to this repo.` |
+| `ralph` | Create specs, make guarded plans, and run explicitly invoked uncommitted implementation iterations | `Use $ralph to implement one iteration and leave the result uncommitted.` |
 | `debug` | Reproduce a failure and isolate its root cause | `Use $debug to diagnose this intermittent test failure.` |
 | `dependency-maintenance` | Assess and update dependencies in safe batches | `Use $dependency-maintenance to update patch versions and verify them.` |
-| `quality-gate` | Run repository-native checks and report readiness | `Use $quality-gate to run all required checks.` |
+| `quality-gate` | Execute repository-native checks and report PASS, FAIL, or INCONCLUSIVE | `Use $quality-gate to run all required checks.` |
 | `local-review` | Review local Git changes for actionable defects | `Use $local-review to review the current diff.` |
 | `commit` | Create atomic commits using the repository's convention | `Use $commit to commit only the documentation changes.` |
 | `git-workflow` | Safely manage branches, sync, publication, and explicit history operations | `Use $git-workflow to push this branch without creating a PR.` |
-| `release-readiness` | Check versioning, notes, migrations, compatibility, and artifacts | `Use $release-readiness to assess this release without publishing it.` |
+| `release-readiness` | Make a holistic release decision from checks, compatibility, operations, and rollback evidence | `Use $release-readiness to assess this release without publishing it.` |
 
 Detailed guides:
 
@@ -47,6 +49,8 @@ Detailed guides:
 - [Commit](docs/commit.md)
 - [Git workflow](docs/git-workflow.md)
 - [Release readiness](docs/release-readiness.md)
+- [Skill packs](docs/packs.md)
+- [Skill evaluations](docs/evaluations.md)
 
 ## Recommended Delivery Lifecycle
 
@@ -68,7 +72,7 @@ A common feature flow is:
 $ee-clarify -> $ee-breakdown -> $ralph -> $quality-gate -> $local-review -> $commit -> $git-workflow -> $release-readiness
 ```
 
-`local-review` and `release-readiness` are read-only by default. `quality-gate` does not intentionally fix files, but repository checks can generate files; it reports any such changes. Ask separately if you want Codex to implement findings or publish anything.
+`local-review` and `release-readiness` are read-only by default. `quality-gate` executes checks and reports evidence; it does not make the broader release decision. Repository checks can generate files, so the skill reports any such changes. Ask separately if you want Codex to implement findings or publish anything.
 
 `commit` does not imply push, and push does not imply creating a pull request. Omit `git-workflow` when the work should remain local.
 
@@ -95,6 +99,8 @@ Codex does not discover a generic vendor directory as a named skill, so the wrap
 
 The global toolkit copy is enough for one-off guidance. Apply the toolkit as a submodule at `prompts/library` inside a target project when the project should pin the rules, share them with the team, or reference them from Ralph specs and project guidance.
 
+Installed EE wrappers contain absolute links to this repository's pinned toolkit checkout. The v2 managed manifest fingerprints that target, so rerunning the installer from a moved clone can relocate an otherwise unchanged managed link without trusting an arbitrary redirect. `doctor.sh` rejects unrecorded, locally changed, or stale links. Ralph's guarded container deliberately mounts a dedicated Codex home rather than the host profile, so use a project-local `prompts/library` submodule when EE rules must also be available inside that container.
+
 See [Using the Equal Experts toolkit](docs/equal-experts-workflow.md) for the decision guide.
 
 ## Install Global Skills
@@ -108,18 +114,35 @@ install global skills
 Codex follows [AGENTS.md](AGENTS.md) and runs:
 
 ```bash
-./install.sh
+./install.sh --install-dependencies
+```
+
+The explicit dependency flag installs missing or mismatched pinned CLIs and synchronizes the managed Ralph checkout. If selected dependencies already match, `./install.sh` alone performs no network installation.
+
+The repository currently ships developer workflows. The installer defaults to the complete `developer` pack on its first run; `all` is a separate future-proof superset so later writer, business-analysis, or athlete packs do not silently enter the developer profile. It reuses the previous managed selection later, or accepts one or more explicit packs:
+
+```bash
+./install.sh --list-packs
+./install.sh --pack all
+./install.sh --pack developer-core
+./install.sh --pack developer-core --pack equal-experts
 ```
 
 The installer:
 
-- initializes the EE toolkit submodule
-- installs or updates Ralph
-- installs OpenAI Codex CLI and devcontainer CLI when missing
-- copies every directory under `skills/` to `${CODEX_HOME:-$HOME/.codex}/skills`
+- resolves the union of selected pack manifests under `packs/`
+- checks dependencies without changing them unless `--install-dependencies` is supplied
+- verifies OpenAI Codex CLI `0.143.0` and devcontainer CLI `0.87.0`, and installs missing or mismatched selected versions from exact npm packages only when explicitly requested
+- initializes the pinned EE toolkit only when selected and explicitly requested
+- synchronizes Ralph source at pinned commit `3c53c0ed8ed549c6aa15d9f364ae474b2b19ac10`, then publishes only its reviewed CLI, plan/build prompts, and source container files into managed state; it never runs Ralph's upstream installer against personal `~/.config/ralph` content
+- verifies existing skill ownership, content hashes, symlink targets, and executable modes before staging a replacement
+- adopts only previously published pre-manifest copies whose content and executable modes both match a recorded historical source; local modifications still fail safely
+- applies the selected skill set with rollback, removing an omitted skill only when the previous managed copy is unchanged
 - links the EE toolkit into the EE wrapper skills
 - installs `guidance/git-safety.md` as a clearly marked managed block in `${CODEX_HOME:-$HOME/.codex}/AGENTS.md`
-- adds Ralph's default binary directory to `~/.zshrc` when needed
+- records selected packs and their source hashes, dependencies, guidance, skill hashes, the EE target fingerprint when applicable, and a canonical state checksum in `${CODEX_HOME:-$HOME/.codex}/.codex-global-skills/manifest`
+
+State is fail-closed: a missing pack or skill selection, unsupported dependency, duplicate entry, checksum mismatch, pack-union mismatch, or claim for an unknown skill stops before profile mutation. Recorded pack hashes let a valid old manifest remain an ownership baseline when pack definitions evolve, while unchanged pack contracts must exactly match their recorded skill/dependency/guidance union. A per-profile lock serializes installers, destinations are revalidated immediately before replacement, and the new manifest is staged before skill changes. Failure or interruption before atomic manifest publication restores both skill changes and managed `AGENTS.md` guidance while preserving concurrent edits for review; interruption after publication retains the complete committed selection rather than creating mixed state.
 
 The managed block is bounded by these markers:
 
@@ -128,7 +151,13 @@ The managed block is bounded by these markers:
 <!-- codex-global-skills:git-safety:end -->
 ```
 
-The installer creates `AGENTS.md` when it is missing, appends the block when no managed block exists, and replaces exactly one valid managed block on later runs. Content before and after the markers remains user-owned and is preserved. A lone, duplicate, or misordered managed marker causes a safe failure instead of a partial rewrite. Symbolic links and other non-regular `AGENTS.md` targets are also rejected so a dotfile-managed target is never silently replaced; use a regular file or install the marked block through that dotfile workflow.
+The installer creates `AGENTS.md` when it is missing, appends the block when no managed block exists, and replaces exactly one valid managed block on later runs. Content before and after the markers remains user-owned and is preserved. A lone, duplicate, or misordered managed marker causes a safe failure before skill mutation. Symbolic links and other non-regular `AGENTS.md` targets are also rejected so a dotfile-managed target is never silently replaced; use a regular file or install the marked block through that dotfile workflow.
+
+The installer never edits `.zshrc`, `.bashrc`, or another shell profile. Ralph does not need to be on `PATH`: the skill resolves its checksum-verified executable directly from managed state.
+
+Each Ralph source/CLI/config contract has its own `${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}/ralph-runtimes/<runtime-id>/` directory, separate from personal Ralph configuration and older managed pins. This makes a pin upgrade additive and non-destructive; an interrupted new contract is rolled back without touching the previous runtime. The guarded devcontainer uses a checksum-pinned reduced configuration without the host Docker socket, host networking, or the host home/credential directories. It mounts the project, a read-only verified Ralph skill, and a dedicated sandbox home under the same managed state root. On first use, run `codex login` inside the container; that dedicated credential is available to the backend and the container retains outbound network access, so this is a workspace-containment layer, not an absolute security or publication boundary. See [Ralph](docs/ralph.md).
+
+See [Skill packs](docs/packs.md) for selection, desired-state, and future role-pack design guidance.
 
 Start a new Codex task or restart Codex if newly installed skills are not immediately visible.
 
@@ -140,7 +169,7 @@ From this repository, ask Codex to `update global skills` or run:
 ./update.sh
 ```
 
-The update script fast-forwards this repository, refreshes its submodules, and reruns the installer. That refreshes installed skill copies and the managed global Git rules while preserving user-authored content outside the markers in `${CODEX_HOME:-$HOME/.codex}/AGENTS.md`. If the repository cannot be fast-forwarded, the update stops rather than overwriting local work; resolve the Git conflict or divergence and run it again.
+The update script requires a clean branch with a configured upstream, fast-forwards the repository, synchronizes submodule URLs and pinned gitlinks, validates the updated source, reinstalls the previously selected packs with explicit dependency synchronization, and runs the doctor. It stops before pulling when the repository has local changes, is detached, lacks an upstream, or cannot fast-forward.
 
 To verify the installation, ask Codex to `check global skills` or run:
 
@@ -148,14 +177,14 @@ To verify the installation, ask Codex to `check global skills` or run:
 ./doctor.sh
 ```
 
-The doctor discovers skill directories dynamically, checks the managed global Git guidance, checks each source and installed `SKILL.md` and `agents/openai.yaml`, verifies EE toolkit links only for EE wrappers, and checks required commands, Ralph, and Docker reachability.
+The doctor verifies the state checksum and pack contracts, reconstructs the selected union, compares source and installed directory hashes with the recorded state, verifies every EE toolkit link resolves to the exact pinned toolkit, verifies Ralph's source, isolated managed runtime, plan/build prompts, source container contract, and exact CLI versions, detects stale or locally changed copies, and checks only the dependencies relevant to the selected packs. Legacy or repository skills installed outside the managed selection are reported as warnings rather than deleted.
 
 ## Terminal Setup
 
 ```bash
 git clone <this-repo-url> codex-global-skills
 cd codex-global-skills
-./install.sh
+./install.sh --install-dependencies
 ./doctor.sh
 ```
 
@@ -167,12 +196,31 @@ install.sh
 update.sh
 doctor.sh
 validate.sh
+lib/
+  common.sh              # shared hashing and pack parsing helpers
+packs/
+  <pack-name>.pack       # declarative skill, dependency, and guidance selection
 skills/
   <skill-name>/
     SKILL.md
     agents/openai.yaml
+    assets/                 # optional reviewed runtime templates
+    scripts/                # optional skill-scoped helpers
 guidance/
   git-safety.md         # source for the installer-managed global guidance block
+evals/
+  routing.tsv           # positive and adjacent-negative trigger fixtures
+  workflow-safety.tsv   # mutation-safety forward-test fixtures
+migrations/
+  legacy-skill-hashes.tsv # approved upgrade hashes from pre-manifest releases
+pins/
+  cli.env                 # exact managed Codex/devcontainer versions
+tests/
+  run.sh                # regression suite; pinned-runtime smoke may skip
+  test-installer.sh     # installer and doctor state-transition tests
+  test-ee-toolkit.sh    # exact submodule identity and cleanliness tests
+  test-ralph-safety.sh  # safe prompt and remote-write guard tests
+  test-ralph-pinned-integration.sh # optional installed-runtime dry-run
 vendor/
   equalexperts/
     llm-toolkit/       # upstream git submodule; do not copy into skills
@@ -188,6 +236,9 @@ Add each workflow under `skills/<skill-name>/` with:
 - `agents/openai.yaml` containing the display name, short description, and a useful default prompt
 - a developer guide at `docs/<skill-name>.md`
 - a row and documentation link in this README
+- membership in every applicable `packs/*.pack` manifest
+- positive and adjacent-negative cases in `evals/routing.tsv`
+- a workflow-safety case when the skill performs fragile mutations
 
 Use lowercase hyphenated names, keep third-party libraries as submodules under `vendor/`, and never copy large upstream rule sets into a skill.
 
@@ -197,4 +248,13 @@ Validate source files before installation:
 ./validate.sh
 ```
 
-The repository validator checks shell syntax, skill frontmatter, UI metadata, developer guides, README catalog entries, TODO markers, and whitespace without requiring Python packages. For new or substantially changed skills, also use Codex's `$skill-creator` validator. Then run `./install.sh` and `./doctor.sh`.
+The repository validator checks shell syntax, canonical skill frontmatter constraints, UI metadata, pack grammar and coverage, developer guides, README catalog entries, routing and safety-evaluation schemas, TODO markers, and whitespace without requiring Python packages. For new or substantially changed skills, also use Codex's `$skill-creator` workflow and blind forward tests from [Skill evaluations](docs/evaluations.md).
+
+Run the disposable-fixture behavioral suite (the installed pinned-runtime smoke skips when unavailable) and a temporary-profile installation before changing the real global profile:
+
+```bash
+./tests/run.sh
+temp_home="$(mktemp -d)"
+CODEX_HOME="$temp_home/codex" CODEX_GLOBAL_SKILLS_HOME="$temp_home/state" ./install.sh --pack developer-core
+CODEX_HOME="$temp_home/codex" CODEX_GLOBAL_SKILLS_HOME="$temp_home/state" ./doctor.sh
+```

@@ -1,4 +1,4 @@
 interface:
   display_name: "Ralph"
   short_description: "Create specs, plan, and build with Ralph"
-  default_prompt: "Use $ralph to turn this chat into a Ralph spec, plan it, or run one cautious build iteration."
+  default_prompt: "Use $ralph to create or update a spec, make a guarded plan, or run one reviewed uncommitted build iteration."

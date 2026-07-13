@@ -1,6 +1,6 @@
 # Release Readiness
 
-Use `release-readiness` for a final, non-publishing assessment before a tag, package, deployment, or release PR.
+Use `release-readiness` for a final, non-publishing decision before a tag, package, deployment, or release PR.
 
 ## Good Prompts
 
@@ -22,4 +22,4 @@ Use $release-readiness to check this library for a safe breaking release.
 
 The result is `READY`, `NOT READY`, or `INCONCLUSIVE`, with blockers first and supporting evidence. The skill does not change versions, create tags, publish artifacts, deploy, or push unless separately authorized.
 
-Run `$quality-gate` and `$local-review` before this assessment so release readiness can focus on release-specific risk.
+Run `$quality-gate` and `$local-review` before this assessment so release readiness can focus on release-specific risk. A quality-gate `PASS` only confirms the checks that ran; it cannot establish release scope, compatibility, migration safety, operational readiness, or rollback viability by itself.

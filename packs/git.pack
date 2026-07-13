@@ -1,0 +1,7 @@
+# Focused Git commit and repository workflow pack.
+
+dependency git
+guidance git-safety
+
+skill commit
+skill git-workflow

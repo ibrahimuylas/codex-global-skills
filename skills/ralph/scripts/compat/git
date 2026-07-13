@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -z "${RALPH_SYSTEM_GIT:-}" || ! -x "$RALPH_SYSTEM_GIT" || "$RALPH_SYSTEM_GIT" == "$0" ]]; then
+  echo "Git compatibility guard has no trusted delegate" >&2
+  exit 1
+fi
+
+if [[ "$#" -eq 0 ]]; then
+  exec "$RALPH_SYSTEM_GIT"
+fi
+
+arguments=("$@")
+expect_value=0
+command_name=""
+for argument in "${arguments[@]}"; do
+  if [[ "$expect_value" -eq 1 ]]; then
+    expect_value=0
+    continue
+  fi
+  case "$argument" in
+    -C|-c|--git-dir|--work-tree|--namespace|--super-prefix|--config-env)
+      expect_value=1
+      ;;
+    --git-dir=*|--work-tree=*|--namespace=*|--super-prefix=*|--config-env=*|--exec-path=*)
+      ;;
+    --*|-*)
+      ;;
+    *)
+      command_name="$argument"
+      break
+      ;;
+  esac
+done
+
+if [[ "$command_name" == "push" || "$command_name" == "send-pack" ]]; then
+  echo "Blocked Git remote-write command inside guarded Ralph: $command_name" >&2
+  exit 126
+fi
+
+exec "$RALPH_SYSTEM_GIT" "$@"

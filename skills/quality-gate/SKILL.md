@@ -1,11 +1,11 @@
 ---
 name: quality-gate
-description: Run repository-native formatting, linting, type-checking, testing, build, and other validation commands, then report evidence-based readiness. Use for pre-commit or pre-PR verification, release checks, requests to run all checks, or decisions about whether a local change is ready to merge.
+description: Execute repository-native formatting, linting, type-checking, testing, build, and other validation commands, then report PASS, FAIL, or INCONCLUSIVE with evidence. Use for requests to run checks or verify a local change before commit or pull request. Use release-readiness for a holistic tag, publication, deployment, or release decision.
 ---
 
 # Quality Gate
 
-Verify the requested change without silently fixing it.
+Execute the requested validation without silently fixing findings or making a release decision.
 
 ## Workflow
 
@@ -31,4 +31,4 @@ Report in this order:
 4. Summarize passing checks without dumping successful logs.
 5. State any validation-created working-tree changes and the smallest useful next step.
 
-Never declare a change ready based on a partial or inconclusive run. Never hide a failure by rerunning it with weaker options.
+Treat `PASS` as evidence that the identified checks passed, not as a merge or release decision. Never report `PASS` for a partial or inconclusive run. Never hide a failure by rerunning it with weaker options.

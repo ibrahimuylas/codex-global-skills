@@ -1,0 +1,14 @@
+# Developer workflows that do not require Ralph or the Equal Experts toolkit.
+
+dependency git
+guidance git-safety
+
+skill repo-map
+skill decision-record
+skill debug
+skill dependency-maintenance
+skill quality-gate
+skill local-review
+skill commit
+skill git-workflow
+skill release-readiness

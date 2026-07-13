@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SHORT_SPEC='n:g:m:b:vyh'
+LONG_SPEC='iterations:,goal:,model:,backend:,skip-push,dry-run,verbose,yes,help'
+
+quote_arguments() {
+  local argument
+
+  for argument in "$@"; do
+    printf '%q ' "$argument"
+  done
+}
+
+if [[ "$#" -ge 7 && "$1" == "-o" && "$2" == "$SHORT_SPEC" && "$3" == "--long" && "$4" == "$LONG_SPEC" && "$5" == "-n" && "$6" == "ralph" && "$7" == "--" ]]; then
+  shift 7
+  parsed=()
+  positional=()
+
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --)
+        shift
+        while [[ "$#" -gt 0 ]]; do
+          positional+=("$1")
+          shift
+        done
+        break
+        ;;
+      --iterations|--goal|--model|--backend)
+        option="$1"
+        if [[ "$#" -lt 2 ]]; then
+          echo "ralph: option requires an argument: $option" >&2
+          exit 1
+        fi
+        parsed+=("$option" "$2")
+        shift 2
+        ;;
+      --iterations=*|--goal=*|--model=*|--backend=*)
+        option="${1%%=*}"
+        parsed+=("$option" "${1#*=}")
+        shift
+        ;;
+      --skip-push|--dry-run|--verbose|--yes|--help)
+        parsed+=("$1")
+        shift
+        ;;
+      --*)
+        echo "ralph: unrecognized option: $1" >&2
+        exit 1
+        ;;
+      -?*)
+        short_options="${1#-}"
+        shift
+        while [[ -n "$short_options" ]]; do
+          option="${short_options:0:1}"
+          short_options="${short_options:1}"
+          case "$option" in
+            n|g|m|b)
+              if [[ -n "$short_options" ]]; then
+                value="$short_options"
+                short_options=""
+              elif [[ "$#" -gt 0 ]]; then
+                value="$1"
+                shift
+              else
+                echo "ralph: option requires an argument: -$option" >&2
+                exit 1
+              fi
+              parsed+=("-$option" "$value")
+              ;;
+            v|y|h)
+              parsed+=("-$option")
+              ;;
+            *)
+              echo "ralph: invalid option: -$option" >&2
+              exit 1
+              ;;
+          esac
+        done
+        ;;
+      *)
+        positional+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  if [[ "${#parsed[@]}" -gt 0 ]]; then
+    quote_arguments "${parsed[@]}"
+  fi
+  printf '%s ' '--'
+  if [[ "${#positional[@]}" -gt 0 ]]; then
+    quote_arguments "${positional[@]}"
+  fi
+  printf '\n'
+  exit 0
+fi
+
+if [[ -n "${RALPH_SYSTEM_GETOPT:-}" && -x "$RALPH_SYSTEM_GETOPT" && "$RALPH_SYSTEM_GETOPT" != "$0" ]]; then
+  exec "$RALPH_SYSTEM_GETOPT" "$@"
+fi
+
+echo "getopt compatibility shim received an unsupported invocation and no original getopt is available" >&2
+exit 1

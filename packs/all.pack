@@ -1,0 +1,24 @@
+# Every skill currently shipped by this repository. Use for broad evaluation or
+# users who intentionally want every role pack; developer remains the default.
+
+dependency git
+dependency codex
+dependency devcontainer
+dependency ralph
+dependency ee-toolkit
+guidance git-safety
+
+skill repo-map
+skill ee-control-plane
+skill ee-clarify
+skill ee-breakdown
+skill decision-record
+skill equal-experts-workflow
+skill ralph
+skill debug
+skill dependency-maintenance
+skill quality-gate
+skill local-review
+skill commit
+skill git-workflow
+skill release-readiness

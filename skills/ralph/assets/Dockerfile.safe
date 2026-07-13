@@ -1,0 +1,29 @@
+FROM node:20-bookworm-slim
+
+ARG TZ=UTC
+ENV TZ="$TZ"
+ENV DEVCONTAINER=true
+ENV SHELL=/bin/zsh
+ENV CODEX_HOME=/home/node/.codex
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    jq \
+    less \
+    procps \
+    ripgrep \
+    zsh \
+  && rm -rf /var/lib/apt/lists/* \
+  && npm install -g @openai/codex@0.143.0 \
+  && mkdir -p /workspace /home/node/.codex /home/node/.config/ralph /commandhistory \
+  && touch /commandhistory/.zsh_history \
+  && chown -R node:node /workspace /home/node /commandhistory
+
+USER node
+WORKDIR /workspace
+ENV HISTFILE=/commandhistory/.zsh_history
+
+CMD ["zsh"]

@@ -1,6 +1,6 @@
 ---
 name: equal-experts-workflow
-description: Install, apply, select, and use the Equal Experts LLM toolkit rules, prompts, commands, and templates in a target repository from Codex chat. Use when the user asks to apply or implement the EE toolkit, use EE rules, Equal Experts rules, llm-toolkit, development rules, rule templates, clarify or breakdown templates, or add applicable rules to Ralph specs or project guidance.
+description: Safely install or update the Equal Experts LLM toolkit in a target repository, or locate, select, and apply its rules and templates. Use when the user explicitly asks to install, apply, or update the EE toolkit, use EE rules, select development rules, or reference toolkit resources. Use the focused ee-clarify, ee-breakdown, ee-control-plane, or ralph skill for those workflows.
 ---
 
 # Equal Experts Workflow
@@ -16,24 +16,40 @@ Keep this skill and the focused `ee-*` workflow skills as thin global wrappers. 
 - Use a project-local `prompts/library` submodule when rules must be versioned and shared with that project.
 - Do not copy toolkit rule bodies into skills or create one global skill per rule.
 
+## Repository Preflight
+
+Before changing a target repository:
+
+1. Read repository instructions and inspect the current branch, `git status`, staged and unstaged diffs, `.gitmodules`, `prompts/`, and any existing `prompts/library` entry. Stop before `git submodule add` if `.gitmodules` already has staged or unstaged changes because Git would stage unrelated same-file edits.
+2. Confirm the target is a Git repository and classify the request as read-only rule selection, initial installation, pinned initialization, or upstream update. Never mutate the repository for read-only selection.
+3. Identify existing path ownership, submodule registration, origin URL, current commit, local changes, and project pinning policy. Capture remote URLs without printing them, compare the complete value privately, and redact embedded credentials from every report. Preserve unrelated and user-authored changes; never stash, clean, reset, or overwrite them.
+4. Stop for direction if the path, `.gitmodules`, or index contains a conflicting entry, or if the existing checkout is not the expected Equal Experts toolkit.
+
 ## Apply Toolkit To A Repo
 
 When the user says "apply ee toolkit", "implement ee toolkit", or asks to add EE rules/templates to the current project:
 
 1. Work in the current project directory unless the user names another path.
-2. Ensure the project has a `prompts/` directory.
-3. If `prompts/library` already exists, inspect whether it is the Equal Experts toolkit and update it if asked.
-4. If it is missing, add the toolkit as a git submodule:
+2. If a valid registered EE submodule already exists, leave it unchanged unless the user explicitly asks to initialize or update it.
+3. If the path and `.gitmodules` entry are both absent, explain that `git submodule add` stages `.gitmodules` and the gitlink, then add the toolkit:
 
 ```bash
 mkdir -p prompts
 git submodule add https://github.com/EqualExperts/llm-toolkit.git prompts/library
-git submodule update --init --recursive
+git submodule update --init --recursive -- prompts/library
 ```
 
-5. Summarize the installed rule/template locations and suggest any project guidance updates, such as referencing `prompts/library/rules/` from `AGENTS.md`.
+4. Inspect `git diff --cached -- .gitmodules prompts/library` and `git status` immediately. Do not stage any other path, commit, or push without separate authorization.
+5. Summarize the installed locations and suggest project guidance updates, such as referencing `prompts/library/rules/` from `AGENTS.md`.
 
 If `prompts/library` exists but is not an EE toolkit checkout, stop and ask how to proceed rather than overwriting it.
+
+## Initialize Or Update Toolkit
+
+- Run `git submodule update --init --recursive -- prompts/library` only to materialize the clean commit already pinned by the parent repository. Never initialize or update other submodules as a side effect.
+- Update beyond the pinned commit only when the user explicitly asks. Require a clean submodule, verify the expected origin, resolve the intended branch or commit from project policy or user direction, fetch it, and move only by fast-forward. Never reset, force, or silently change the tracked branch.
+- Record the before and after submodule commits. Leave an updated gitlink unstaged unless the user asked to stage it.
+- Stop when local submodule changes, an unexpected origin, an ambiguous target ref, or conflicting parent-repository changes make the update unsafe.
 
 ## Toolkit Locations
 
@@ -44,10 +60,11 @@ Look for the toolkit in this order:
 3. Shared skills repo: `../../vendor/equalexperts/llm-toolkit/`
 4. User-provided path or URL
 
-If the toolkit is missing from the shared skills repo, suggest:
+If the toolkit is missing from the shared skills repository, do not run a relative submodule command from the target project. Resolve the global skills repository root and use its installer:
 
 ```bash
-git submodule update --init --recursive
+cd <codex-global-skills-repo>
+./install.sh --pack equal-experts --install-dependencies
 ```
 
 ## Rule Selection
@@ -73,33 +90,10 @@ Select only rules relevant to the current work. Common choices:
 
 Read the selected files before applying them. Do not load the entire rules directory by default.
 
-## Ralph Integration
+## Focused Workflow Routing
 
-When creating or updating Ralph specs:
-
-- Add an `Applicable Rules` section.
-- Reference rule paths instead of copying full rule content.
-- Prefer project-local paths if a project has its own `prompts/library`.
-- Keep product intent in `specs/*.md`; keep engineering constraints in EE rule references.
-
-Example:
-
-```md
-## Applicable Rules
-
-- prompts/library/rules/clean-code.md
-- prompts/library/rules/testing-principles.md
-- prompts/library/rules/platform/typescript.rules.md
-```
-
-If the project does not vendor the toolkit, apply it to the repo before using project-local EE rules when the user asked to "apply" or "implement" EE toolkit. For one-off advice, the installed skill toolkit may be used without modifying the target repo.
-
-## Clarify And Breakdown
-
-Use EE commands as workflow templates, not literal slash commands unless the host tool supports them.
-
-- For vague ideas, read `commands/clarify.md` and use its phases to turn the idea into a scoped work item.
-- For large work, read `commands/breakdown.md` and use it to decompose into small, testable tasks.
+- Use `$ee-clarify` for a vague idea, `$ee-breakdown` for decomposition, and `$ee-control-plane` for project bootstrap.
+- When the separate Ralph pack is installed, use `$ralph` to create or manage specs, plans, and builds. This skill may select rule paths for an `Applicable Rules` section, but it does not manage Ralph artifacts; suggest composing `equal-experts` with `ralph` when that handoff is wanted.
 - For new rule creation, read `prompts/00-rules-template.md` and keep generated rules under 200 lines.
 
 ## Applying Rules
@@ -110,3 +104,7 @@ When implementing or reviewing work with selected EE rules:
 2. Apply the rules as constraints during planning, coding, testing, and review.
 3. If a rule conflicts with project-local instructions, prefer project-local instructions and call out the conflict.
 4. Keep summaries short: mention the rule impact, not a full restatement of the rule.
+
+## Report
+
+State whether the work was read-only, installed, initialized, or updated; list selected rule paths; report only a credential-redacted toolkit origin and the before/after commit when changed; identify staged and unstaged paths; and call out conflicts or follow-up. Never expose raw remote credentials or imply that an update was published.

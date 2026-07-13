@@ -1,0 +1,27 @@
+{
+  "name": "Ralph Guarded Sandbox",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "TZ": "${localEnv:TZ:UTC}"
+    }
+  },
+  "remoteUser": "node",
+  "updateRemoteUserUID": true,
+  "runArgs": [
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges"
+  ],
+  "containerEnv": {
+    "DEVCONTAINER": "true",
+    "CODEX_HOME": "/home/node/.codex",
+    "RALPH_CONFIG_DIR": "/home/node/.config/ralph"
+  },
+  "mounts": [
+    "source=${localEnv:RALPH_GUARDED_SKILL_DIR},target=/home/node/.codex/skills/ralph,type=bind,readonly"
+  ],
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace",
+  "postStartCommand": "git config --global --add safe.directory /workspace",
+  "waitFor": "postStartCommand"
+}

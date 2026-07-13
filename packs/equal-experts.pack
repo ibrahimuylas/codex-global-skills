@@ -1,0 +1,11 @@
+# Equal Experts workflow wrappers and their shared toolkit.
+
+dependency git
+dependency ee-toolkit
+guidance git-safety
+
+skill ee-control-plane
+skill ee-clarify
+skill ee-breakdown
+skill decision-record
+skill equal-experts-workflow
