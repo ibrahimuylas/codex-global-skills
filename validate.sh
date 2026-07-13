@@ -242,7 +242,7 @@ validate_ralph_pin() {
     printf '%s\n' "$revision" "$cli_hash" "$global_skill_defaults_hash" "$plan_prompt_hash" "$prompt_hash" "$container_hash" "$devcontainer_hash"
   } | sha256_stream)"
   [[ "$runtime_id" == "$computed_runtime_id" ]] || fail "Ralph runtime ID does not match its source/CLI/config contract"
-  grep -Fq "$revision" "$SCRIPT_DIR/README.md" || fail "README does not document the Ralph pin revision"
+  grep -Fq "$revision" "$SCRIPT_DIR/docs/install.md" || fail "docs/install.md does not document the Ralph pin revision"
   grep -Fqx "CODEX_REQUIRED_VERSION=$codex_version" "$SCRIPT_DIR/installer/pins/cli.env" || fail "Ralph and global Codex CLI pins differ"
   grep -Fqx "DEVCONTAINER_REQUIRED_VERSION=$devcontainer_version" "$SCRIPT_DIR/installer/pins/cli.env" || fail "Ralph and global devcontainer CLI pins differ"
   verify_regular_file_sha256 "$SCRIPT_DIR/skills/ralph/assets/Dockerfile.safe" "$safe_container_hash" || fail "guarded Ralph Dockerfile differs from its pin"
@@ -297,8 +297,8 @@ validate_cli_pins() {
   devcontainer_version="$(sed -n 's/^DEVCONTAINER_REQUIRED_VERSION=//p' "$pin_file")"
   grep -Fqx "CODEX_NPM_PACKAGE=@openai/codex@$codex_version" "$pin_file" || fail "Codex package and required version differ"
   grep -Fqx "DEVCONTAINER_NPM_PACKAGE=@devcontainers/cli@$devcontainer_version" "$pin_file" || fail "devcontainer package and required version differ"
-  grep -Fq "Codex CLI \`$codex_version\`" "$SCRIPT_DIR/README.md" || fail "README does not document the Codex CLI pin"
-  grep -Fq "devcontainer CLI \`$devcontainer_version\`" "$SCRIPT_DIR/README.md" || fail "README does not document the devcontainer CLI pin"
+  grep -Fq "Codex CLI \`$codex_version\`" "$SCRIPT_DIR/docs/install.md" || fail "docs/install.md does not document the Codex CLI pin"
+  grep -Fq "devcontainer CLI \`$devcontainer_version\`" "$SCRIPT_DIR/docs/install.md" || fail "docs/install.md does not document the devcontainer CLI pin"
   grep -Fq 'source "$CLI_PIN_FILE"' "$SCRIPT_DIR/install.sh" || fail "installer does not load the shared CLI pin contract"
   grep -Fq 'source "$CLI_PIN_FILE"' "$SCRIPT_DIR/doctor.sh" || fail "doctor does not load the shared CLI pin contract"
   ok "shared CLI dependency pin contract"
@@ -454,7 +454,7 @@ validate_legacy_hashes
 validate_ralph_pin
 validate_cli_pins
 
-for required_doc in docs/packs.md docs/evaluations.md; do
+for required_doc in docs/packs.md docs/evaluations.md docs/skills.md docs/lifecycle.md docs/install.md docs/global-git-guidance.md docs/repository-layout.md docs/adding-a-skill.md; do
   [[ -f "$SCRIPT_DIR/$required_doc" ]] && ok "developer guide: $required_doc" || fail "missing developer guide: $required_doc"
 done
 
