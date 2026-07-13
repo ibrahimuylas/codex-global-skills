@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/codex-global-skills-ee.XXXXXX")"
 
-# shellcheck source=../lib/common.sh
-source "$ROOT/lib/common.sh"
+# shellcheck source=../installer/lib/common.sh
+source "$ROOT/installer/lib/common.sh"
 
 cleanup() {
   rm -rf "$TEST_ROOT"

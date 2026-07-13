@@ -5,8 +5,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/codex-global-skills-tests.XXXXXX")"
 PASSED=0
 
-# shellcheck source=../lib/common.sh
-source "$ROOT/lib/common.sh"
+# shellcheck source=../installer/lib/common.sh
+source "$ROOT/installer/lib/common.sh"
 
 cleanup() {
   rm -rf "$TEST_ROOT"
@@ -447,8 +447,8 @@ test_historical_manifest_state_uses_mode_digest_lookup() {
 
   fixture="$(new_fixture historical-state-mode-digest)"
   revision="$(git -C "$ROOT" rev-parse '03a81e7^{commit}')"
-  commit_digest="$(awk -F '\t' -v revision="$revision" '$1 == "commit" && $4 == revision { print $3; exit }' "$ROOT/migrations/legacy-skill-hashes.tsv")"
-  workflow_digest="$(awk -F '\t' -v revision="$revision" '$1 == "git-workflow" && $4 == revision { print $3; exit }' "$ROOT/migrations/legacy-skill-hashes.tsv")"
+  commit_digest="$(awk -F '\t' -v revision="$revision" '$1 == "commit" && $4 == revision { print $3; exit }' "$ROOT/installer/migrations/legacy-skill-hashes.tsv")"
+  workflow_digest="$(awk -F '\t' -v revision="$revision" '$1 == "git-workflow" && $4 == revision { print $3; exit }' "$ROOT/installer/migrations/legacy-skill-hashes.tsv")"
   manifest="$fixture/codex/.codex-global-skills/manifest"
   mkdir -p "$(dirname "$manifest")" "$fixture/empty-source-skills"
   printf '%s\n' \

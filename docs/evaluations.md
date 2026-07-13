@@ -1,10 +1,10 @@
 # Skill Evaluations
 
-The corpora in `evals/` are small forward tests for skill routing and mutation safety. They are review fixtures, not instructions to load into an agent's context.
+The corpora in `installer/evals/` are small forward tests for skill routing and mutation safety. They are review fixtures, not instructions to load into an agent's context.
 
 ## Corpora
 
-`evals/routing.tsv` uses this schema:
+`installer/evals/routing.tsv` uses this schema:
 
 | Column | Meaning |
 | --- | --- |
@@ -15,7 +15,7 @@ The corpora in `evals/` are small forward tests for skill routing and mutation s
 
 Every skill needs at least one row where it is `expected_skill` and one adjacent row where it appears in `excluded_skills`. Add focused boundary cases when descriptions overlap.
 
-`evals/workflow-safety.tsv` uses this schema:
+`installer/evals/workflow-safety.tsv` uses this schema:
 
 | Column | Meaning |
 | --- | --- |

@@ -24,6 +24,7 @@ When the user asks to "check global skills", "doctor global skills", "verify glo
 - Keep install/update behavior in shell scripts so new developers can run the same flow outside Codex.
 - Global Codex skills live under `skills/<skill-name>/`.
 - Pack manifests live under `packs/<pack-name>.pack`; keep their grammar declarative and their dependencies allowlisted.
+- Installer implementation details live under `installer/` (`lib/`, `guidance/`, `evals/`, `migrations/`, and `pins/`) so the repository root stays focused on user-facing entry points.
 - Keep `all.pack` as the exact catalog-wide superset. Add a skill to `developer.pack` only when it is a developer workflow; role-specific additions must not silently expand the default pack.
 - Every pack must include the managed `git-safety` guidance so desired-state behavior stays unambiguous.
 - Every skill must include a concise `SKILL.md` and matching `agents/openai.yaml` metadata.
@@ -31,7 +32,7 @@ When the user asks to "check global skills", "doctor global skills", "verify glo
 - External reusable toolkits should be git submodules under `vendor/`.
 - Do not copy large third-party rule sets into skill bodies.
 - Add or update developer-facing examples whenever a skill is added or its invocation changes.
-- Add positive and adjacent-negative routing cases for every skill, plus disposable-fixture safety cases for mutation-capable workflows.
+- Add positive and adjacent-negative routing cases for every skill in `installer/evals/routing.tsv`, plus disposable-fixture safety cases for mutation-capable workflows in `installer/evals/workflow-safety.tsv`.
 - Keep always-on global Git guidance small, safety-focused, and repository-agnostic. Put repeatable Git procedures in `commit` or `git-workflow`, and leave branch, ticket, merge, signing, and release conventions to project-local guidance.
 - Preserve user-authored content outside `<!-- codex-global-skills:git-safety:start -->` and `<!-- codex-global-skills:git-safety:end -->` in `${CODEX_HOME:-$HOME/.codex}/AGENTS.md`. Changes to the managed block or its markers must remain idempotent and backward compatible with an existing global file.
 - A request to commit does not imply push, and a request to push does not imply creating a pull request. Document and preserve these authorization boundaries in Git-related skills.

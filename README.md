@@ -139,7 +139,7 @@ The installer:
 - adopts only previously published pre-manifest copies whose content and executable modes both match a recorded historical source; local modifications still fail safely
 - applies the selected skill set with rollback, removing an omitted skill only when the previous managed copy is unchanged
 - links the EE toolkit into the EE wrapper skills
-- installs `guidance/git-safety.md` as a clearly marked managed block in `${CODEX_HOME:-$HOME/.codex}/AGENTS.md`
+- installs `installer/guidance/git-safety.md` as a clearly marked managed block in `${CODEX_HOME:-$HOME/.codex}/AGENTS.md`
 - records selected packs and their source hashes, dependencies, guidance, skill hashes, the EE target fingerprint when applicable, and a canonical state checksum in `${CODEX_HOME:-$HOME/.codex}/.codex-global-skills/manifest`
 
 State is fail-closed: a missing pack or skill selection, unsupported dependency, duplicate entry, checksum mismatch, pack-union mismatch, or claim for an unknown skill stops before profile mutation. Recorded pack hashes let a valid old manifest remain an ownership baseline when pack definitions evolve, while unchanged pack contracts must exactly match their recorded skill/dependency/guidance union. A per-profile lock serializes installers, destinations are revalidated immediately before replacement, and the new manifest is staged before skill changes. Failure or interruption before atomic manifest publication restores both skill changes and managed `AGENTS.md` guidance while preserving concurrent edits for review; interruption after publication retains the complete committed selection rather than creating mixed state.
@@ -196,8 +196,6 @@ install.sh
 update.sh
 doctor.sh
 validate.sh
-lib/
-  common.sh              # shared hashing and pack parsing helpers
 packs/
   <pack-name>.pack       # declarative skill, dependency, and guidance selection
 skills/
@@ -206,15 +204,18 @@ skills/
     agents/openai.yaml
     assets/                 # optional reviewed runtime templates
     scripts/                # optional skill-scoped helpers
-guidance/
-  git-safety.md         # source for the installer-managed global guidance block
-evals/
-  routing.tsv           # positive and adjacent-negative trigger fixtures
-  workflow-safety.tsv   # mutation-safety forward-test fixtures
-migrations/
-  legacy-skill-hashes.tsv # approved upgrade hashes from pre-manifest releases
-pins/
-  cli.env                 # exact managed Codex/devcontainer versions
+installer/
+  lib/
+    common.sh              # shared hashing and pack parsing helpers
+  guidance/
+    git-safety.md          # source for the installer-managed global guidance block
+  evals/
+    routing.tsv            # positive and adjacent-negative trigger fixtures
+    workflow-safety.tsv    # mutation-safety forward-test fixtures
+  migrations/
+    legacy-skill-hashes.tsv # approved upgrade hashes from pre-manifest releases
+  pins/
+    cli.env                # exact managed Codex/devcontainer versions
 tests/
   run.sh                # regression suite; pinned-runtime smoke may skip
   test-installer.sh     # installer and doctor state-transition tests
@@ -237,7 +238,7 @@ Add each workflow under `skills/<skill-name>/` with:
 - a developer guide at `docs/<skill-name>.md`
 - a row and documentation link in this README
 - membership in every applicable `packs/*.pack` manifest
-- positive and adjacent-negative cases in `evals/routing.tsv`
+- positive and adjacent-negative cases in `installer/evals/routing.tsv`
 - a workflow-safety case when the skill performs fragile mutations
 
 Use lowercase hyphenated names, keep third-party libraries as submodules under `vendor/`, and never copy large upstream rule sets into a skill.

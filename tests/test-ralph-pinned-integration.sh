@@ -10,8 +10,8 @@ TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/codex-global-skills-ralph-integration.XX
 WORKTREE="$TEST_ROOT/worktree"
 LOG_DIR="$TEST_ROOT/logs"
 
-# shellcheck source=../lib/common.sh
-source "$ROOT/lib/common.sh"
+# shellcheck source=../installer/lib/common.sh
+source "$ROOT/installer/lib/common.sh"
 # shellcheck source=../skills/ralph/assets/ralph-pin.env
 source "$PIN_FILE"
 RALPH_RUNTIME_DIR="$STATE_DIR/ralph-runtimes/$RALPH_PIN_RUNTIME_ID"

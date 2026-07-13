@@ -4,14 +4,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_SRC="$SCRIPT_DIR/skills"
 PACKS_DIR="$SCRIPT_DIR/packs"
-GUIDANCE_SRC="$SCRIPT_DIR/guidance/git-safety.md"
+GUIDANCE_SRC="$SCRIPT_DIR/installer/guidance/git-safety.md"
 CODEX_CONFIG_DIR="${CODEX_HOME:-$HOME/.codex}"
 SKILLS_DEST="$CODEX_CONFIG_DIR/skills"
 GLOBAL_AGENTS_FILE="$CODEX_CONFIG_DIR/AGENTS.md"
 MANAGED_STATE_DIR="$CODEX_CONFIG_DIR/.codex-global-skills"
 MANIFEST_FILE="$MANAGED_STATE_DIR/manifest"
 LOCK_DIR="$MANAGED_STATE_DIR/install.lock"
-LEGACY_HASH_FILE="$SCRIPT_DIR/migrations/legacy-skill-hashes.tsv"
+LEGACY_HASH_FILE="$SCRIPT_DIR/installer/migrations/legacy-skill-hashes.tsv"
 STATE_DIR="${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}"
 RALPH_SOURCE_DIR="${RALPH_SOURCE_DIR:-$STATE_DIR/ralph}"
 RALPH_PIN_FILE="$SCRIPT_DIR/skills/ralph/assets/ralph-pin.env"
@@ -27,12 +27,12 @@ RALPH_RUNTIME_DIR="$STATE_DIR/ralph-runtimes/$RALPH_PIN_RUNTIME_ID"
 BIN_DIR="${RALPH_BIN_DIR:-$RALPH_RUNTIME_DIR/bin}"
 RALPH_CONFIG_DIR="${RALPH_CONFIG_DIR:-$RALPH_RUNTIME_DIR/config}"
 RALPH_DEFAULTS_SRC="$SCRIPT_DIR/skills/ralph/assets/global-skill.env"
-CLI_PIN_FILE="$SCRIPT_DIR/pins/cli.env"
+CLI_PIN_FILE="$SCRIPT_DIR/installer/pins/cli.env"
 if [[ ! -f "$CLI_PIN_FILE" || -L "$CLI_PIN_FILE" ]]; then
   echo "Reviewed CLI pin contract is missing or invalid: $CLI_PIN_FILE" >&2
   exit 1
 fi
-# shellcheck source=pins/cli.env
+# shellcheck source=installer/pins/cli.env
 source "$CLI_PIN_FILE"
 GIT_GUIDANCE_START="<!-- codex-global-skills:git-safety:start -->"
 GIT_GUIDANCE_END="<!-- codex-global-skills:git-safety:end -->"
@@ -50,8 +50,8 @@ RALPH_RUNTIME_CREATED_PATHS=()
 RALPH_RUNTIME_CREATED_HASHES=()
 RALPH_RUNTIME_CREATED_MODES=()
 
-# shellcheck source=lib/common.sh
-source "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=installer/lib/common.sh
+source "$SCRIPT_DIR/installer/lib/common.sh"
 
 usage() {
   cat <<'EOF'

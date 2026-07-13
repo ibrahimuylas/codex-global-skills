@@ -2,13 +2,13 @@
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-GUIDANCE_SRC="$SCRIPT_DIR/guidance/git-safety.md"
+GUIDANCE_SRC="$SCRIPT_DIR/installer/guidance/git-safety.md"
 PACKS_DIR="$SCRIPT_DIR/packs"
 status=0
 TEMP_DIR=""
 
-# shellcheck source=lib/common.sh
-source "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=installer/lib/common.sh
+source "$SCRIPT_DIR/installer/lib/common.sh"
 
 cleanup() {
   if [[ -n "$TEMP_DIR" && -d "$TEMP_DIR" ]]; then
@@ -78,7 +78,7 @@ validate_skill_metadata() {
 }
 
 validate_routing_evals() {
-  local routing="$SCRIPT_DIR/evals/routing.tsv"
+  local routing="$SCRIPT_DIR/installer/evals/routing.tsv"
   local skill
   local expected
   local excluded
@@ -86,7 +86,7 @@ validate_routing_evals() {
   local prompt
 
   if [[ ! -f "$routing" ]] || [[ "$(sed -n '1p' "$routing")" != $'case_id\texpected_skill\texcluded_skills\tprompt' ]]; then
-    fail "missing or invalid evals/routing.tsv header"
+    fail "missing or invalid installer/evals/routing.tsv header"
     return
   fi
   if ! awk -F '\t' 'NR > 1 && (NF != 4 || $1 !~ /^[a-z0-9-]+$/ || $2 == "" || $3 == "" || $4 == "") { exit 1 } END { if (NR < 2) exit 1 }' "$routing"; then
@@ -127,7 +127,7 @@ validate_routing_evals() {
 }
 
 validate_safety_evals() {
-  local safety="$SCRIPT_DIR/evals/workflow-safety.tsv"
+  local safety="$SCRIPT_DIR/installer/evals/workflow-safety.tsv"
   local case_id
   local skill
   local prompt
@@ -135,7 +135,7 @@ validate_safety_evals() {
   local forbidden
 
   if [[ ! -f "$safety" ]] || [[ "$(sed -n '1p' "$safety")" != $'case_id\tskill\tprompt\trequired_behaviors\tforbidden_behaviors' ]]; then
-    fail "missing or invalid evals/workflow-safety.tsv header"
+    fail "missing or invalid installer/evals/workflow-safety.tsv header"
     return
   fi
   if ! awk -F '\t' 'NR > 1 && (NF != 5 || $1 !~ /^[a-z0-9-]+$/ || $2 == "" || $3 == "" || $4 == "" || $5 == "") { exit 1 } END { if (NR < 2) exit 1 }' "$safety"; then
@@ -159,14 +159,14 @@ validate_safety_evals() {
 }
 
 validate_legacy_hashes() {
-  local hashes="$SCRIPT_DIR/migrations/legacy-skill-hashes.tsv"
+  local hashes="$SCRIPT_DIR/installer/migrations/legacy-skill-hashes.tsv"
   local skill
   local digest
   local mode_digest
   local source_commit
 
   if [[ ! -f "$hashes" ]] || [[ "$(sed -n '1p' "$hashes")" != $'skill\tdigest\tmode_digest\tsource_commit' ]]; then
-    fail "missing or invalid migrations/legacy-skill-hashes.tsv header"
+    fail "missing or invalid installer/migrations/legacy-skill-hashes.tsv header"
     return
   fi
   if ! awk -F '\t' 'NR > 1 && (NF != 4 || $1 !~ /^[a-z0-9-]+$/ || $2 !~ /^[0-9a-f]+$/ || length($2) != 64 || $3 !~ /^[0-9a-f]+$/ || length($3) != 64 || $4 !~ /^[0-9a-f]+$/ || length($4) != 40) { exit 1 } END { if (NR < 2) exit 1 }' "$hashes"; then
@@ -243,8 +243,8 @@ validate_ralph_pin() {
   } | sha256_stream)"
   [[ "$runtime_id" == "$computed_runtime_id" ]] || fail "Ralph runtime ID does not match its source/CLI/config contract"
   grep -Fq "$revision" "$SCRIPT_DIR/README.md" || fail "README does not document the Ralph pin revision"
-  grep -Fqx "CODEX_REQUIRED_VERSION=$codex_version" "$SCRIPT_DIR/pins/cli.env" || fail "Ralph and global Codex CLI pins differ"
-  grep -Fqx "DEVCONTAINER_REQUIRED_VERSION=$devcontainer_version" "$SCRIPT_DIR/pins/cli.env" || fail "Ralph and global devcontainer CLI pins differ"
+  grep -Fqx "CODEX_REQUIRED_VERSION=$codex_version" "$SCRIPT_DIR/installer/pins/cli.env" || fail "Ralph and global Codex CLI pins differ"
+  grep -Fqx "DEVCONTAINER_REQUIRED_VERSION=$devcontainer_version" "$SCRIPT_DIR/installer/pins/cli.env" || fail "Ralph and global devcontainer CLI pins differ"
   verify_regular_file_sha256 "$SCRIPT_DIR/skills/ralph/assets/Dockerfile.safe" "$safe_container_hash" || fail "guarded Ralph Dockerfile differs from its pin"
   verify_regular_file_sha256 "$SCRIPT_DIR/skills/ralph/assets/devcontainer.safe.json" "$safe_devcontainer_hash" || fail "guarded Ralph devcontainer config differs from its pin"
   verify_regular_file_sha256 "$SCRIPT_DIR/skills/ralph/assets/global-skill.env" "$global_skill_defaults_hash" ||
@@ -277,7 +277,7 @@ validate_ralph_pin() {
 }
 
 validate_cli_pins() {
-  local pin_file="$SCRIPT_DIR/pins/cli.env"
+  local pin_file="$SCRIPT_DIR/installer/pins/cli.env"
   local codex_version
   local devcontainer_version
 
@@ -309,7 +309,7 @@ echo ""
 
 TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/codex-global-skills-validate.XXXXXX")"
 
-for script in install.sh update.sh doctor.sh validate.sh lib/common.sh tests/*.sh; do
+for script in install.sh update.sh doctor.sh validate.sh installer/lib/common.sh tests/*.sh; do
   [[ -e "$SCRIPT_DIR/$script" ]] || continue
   if bash -n "$SCRIPT_DIR/$script"; then
     ok "shell syntax: $script"
@@ -337,7 +337,7 @@ if [[ -s "$GUIDANCE_SRC" ]] &&
   ! grep -Fq '<!-- codex-global-skills:git-safety:' "$GUIDANCE_SRC"; then
   ok "global Git guidance source"
 else
-  fail "missing or invalid guidance/git-safety.md"
+  fail "missing or invalid installer/guidance/git-safety.md"
 fi
 
 echo ""
@@ -459,13 +459,13 @@ for required_doc in docs/packs.md docs/evaluations.md; do
 done
 
 echo ""
-if grep -R -n -E 'TODO|\[TODO' "$SCRIPT_DIR/skills" "$SCRIPT_DIR/guidance" "$SCRIPT_DIR/packs" "$SCRIPT_DIR/evals" "$SCRIPT_DIR/migrations" "$SCRIPT_DIR/pins"; then
+if grep -R -n -E 'TODO|\[TODO' "$SCRIPT_DIR/skills" "$SCRIPT_DIR/installer/guidance" "$SCRIPT_DIR/packs" "$SCRIPT_DIR/installer/evals" "$SCRIPT_DIR/installer/migrations" "$SCRIPT_DIR/installer/pins"; then
   fail "skill, guidance, pack, or evaluation files still contain TODO markers"
 else
   ok "no managed-content TODO markers"
 fi
 
-if grep -R -n -E '[[:blank:]]+$' "$SCRIPT_DIR/AGENTS.md" "$SCRIPT_DIR/README.md" "$SCRIPT_DIR/docs" "$SCRIPT_DIR/skills" "$SCRIPT_DIR/guidance" "$SCRIPT_DIR/packs" "$SCRIPT_DIR/evals" "$SCRIPT_DIR/migrations" "$SCRIPT_DIR/pins" "$SCRIPT_DIR/lib" "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/update.sh" "$SCRIPT_DIR/doctor.sh" "$SCRIPT_DIR/validate.sh" "$SCRIPT_DIR/tests" 2>/dev/null; then
+if grep -R -n -E '[[:blank:]]+$' "$SCRIPT_DIR/AGENTS.md" "$SCRIPT_DIR/README.md" "$SCRIPT_DIR/docs" "$SCRIPT_DIR/skills" "$SCRIPT_DIR/installer" "$SCRIPT_DIR/packs" "$SCRIPT_DIR/install.sh" "$SCRIPT_DIR/update.sh" "$SCRIPT_DIR/doctor.sh" "$SCRIPT_DIR/validate.sh" "$SCRIPT_DIR/tests" 2>/dev/null; then
   fail "trailing whitespace found"
 else
   ok "no trailing whitespace"
