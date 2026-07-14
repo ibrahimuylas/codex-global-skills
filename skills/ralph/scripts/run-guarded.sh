@@ -20,6 +20,7 @@ CREATED_PROMPT=0
 CREATED_PROMPT_HASH=""
 NORMALIZED_RALPH_ARGUMENTS=()
 MODEL_ARGUMENT_SUPPLIED=0
+BACKEND_CODEX_HOME=""
 
 if [[ ! -f "$RALPH_PIN_FILE" || -L "$RALPH_PIN_FILE" ]]; then
   echo "Reviewed Ralph pin contract is missing or invalid: $RALPH_PIN_FILE" >&2
@@ -98,6 +99,86 @@ file_mode() {
   else
     stat -c '%a' "$1"
   fi
+}
+
+ensure_backend_codex_link() {
+  local source="$1"
+  local destination="$2"
+
+  if [[ ! -f "$source" ]]; then
+    if [[ -e "$destination" || -L "$destination" ]]; then
+      echo "Managed Ralph backend Codex home contains a stale link: $destination" >&2
+      return 1
+    fi
+    return 0
+  fi
+  if [[ -e "$destination" || -L "$destination" ]]; then
+    if [[ ! -L "$destination" || "$(readlink "$destination")" != "$source" ]]; then
+      echo "Managed Ralph backend Codex home contains an unexpected file: $destination" >&2
+      return 1
+    fi
+    return 0
+  fi
+  if ! ln -s "$source" "$destination" 2>/dev/null; then
+    if [[ ! -L "$destination" || "$(readlink "$destination")" != "$source" ]]; then
+      echo "Could not publish managed Ralph backend Codex link: $destination" >&2
+      return 1
+    fi
+  fi
+}
+
+backend_codex_skills_are_isolated() {
+  local skills_dir="$BACKEND_CODEX_HOME/skills"
+  local entry
+
+  if [[ ! -e "$skills_dir" && ! -L "$skills_dir" ]]; then
+    return 0
+  fi
+  if [[ ! -d "$skills_dir" || -L "$skills_dir" ]]; then
+    return 1
+  fi
+  while IFS= read -r -d '' entry; do
+    if [[ "$(basename "$entry")" != ".system" || ! -d "$entry" || -L "$entry" ]]; then
+      return 1
+    fi
+  done < <(find "$skills_dir" -mindepth 1 -maxdepth 1 -print0)
+}
+
+prepare_backend_codex_home() {
+  local source_codex_home
+
+  source_codex_home="${CODEX_HOME:-$HOME/.codex}"
+  if [[ ! -d "$source_codex_home" ]]; then
+    echo "Supervising Codex home is unavailable: $source_codex_home" >&2
+    return 1
+  fi
+  source_codex_home="$(cd "$source_codex_home" && pwd -P)"
+  if [[ ! -d "$STATE_DIR" || -L "$STATE_DIR" ]]; then
+    echo "Managed global-skills state directory is missing or invalid: $STATE_DIR" >&2
+    return 1
+  fi
+
+  BACKEND_CODEX_HOME="$STATE_DIR/ralph-backend-home"
+  if [[ ! -e "$BACKEND_CODEX_HOME" && ! -L "$BACKEND_CODEX_HOME" ]]; then
+    mkdir -m 0700 "$BACKEND_CODEX_HOME" 2>/dev/null || true
+  fi
+  if [[ ! -d "$BACKEND_CODEX_HOME" || -L "$BACKEND_CODEX_HOME" ]]; then
+    echo "Managed Ralph backend Codex home is missing or invalid: $BACKEND_CODEX_HOME" >&2
+    return 1
+  fi
+  chmod 0700 "$BACKEND_CODEX_HOME"
+
+  if ! backend_codex_skills_are_isolated; then
+    echo "Managed Ralph backend Codex home must expose only Codex built-in .system skills" >&2
+    return 1
+  fi
+  if [[ -e "$BACKEND_CODEX_HOME/AGENTS.md" || -L "$BACKEND_CODEX_HOME/AGENTS.md" ]]; then
+    echo "Managed Ralph backend Codex home must not expose AGENTS.md" >&2
+    return 1
+  fi
+
+  ensure_backend_codex_link "$source_codex_home/auth.json" "$BACKEND_CODEX_HOME/auth.json"
+  ensure_backend_codex_link "$source_codex_home/config.toml" "$BACKEND_CODEX_HOME/config.toml"
 }
 
 hash_untracked_directory() {
@@ -446,6 +527,7 @@ if [[ -n "${RALPH_GLOBAL_SKILL_MODEL:-}" && ! "$RALPH_GLOBAL_SKILL_MODEL" =~ ^[A
   exit 1
 fi
 normalize_ralph_arguments "$@"
+prepare_backend_codex_home
 
 CODEX_DEFER_MODEL=1
 if [[ "$MODEL_ARGUMENT_SUPPLIED" -eq 1 || -n "${RALPH_GLOBAL_SKILL_MODEL:-}" ]]; then
@@ -477,6 +559,7 @@ while IFS= read -r remote; do
 done < <("$SYSTEM_GIT" remote)
 
 environment=(
+  "CODEX_HOME=$BACKEND_CODEX_HOME"
   "GIT_CONFIG_COUNT=${#remotes[@]}"
   "PATH=$CODEX_SHIM_DIR:$GETOPT_COMPAT_DIR:${PATH:-}"
   "RALPH_SYSTEM_GETOPT=$SYSTEM_GETOPT"

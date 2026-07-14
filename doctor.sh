@@ -24,6 +24,7 @@ RALPH_RUNTIME_DIR="$STATE_DIR/ralph-runtimes/$RALPH_PIN_RUNTIME_ID"
 BIN_DIR="${RALPH_BIN_DIR:-$RALPH_RUNTIME_DIR/bin}"
 RALPH_CONFIG_DIR="${RALPH_CONFIG_DIR:-$RALPH_RUNTIME_DIR/config}"
 RALPH_DEFAULTS_FILE="$RALPH_CONFIG_DIR/global-skill.env"
+RALPH_BACKEND_CODEX_HOME="$STATE_DIR/ralph-backend-home"
 CLI_PIN_FILE="$SCRIPT_DIR/installer/pins/cli.env"
 if [[ ! -f "$CLI_PIN_FILE" || -L "$CLI_PIN_FILE" ]]; then
   echo "[FAIL] Reviewed CLI pin contract is missing or invalid: $CLI_PIN_FILE"
@@ -89,6 +90,23 @@ check_versioned_command() {
   else
     fail "$command_name version is ${actual_version:-unknown}; required $required_version"
   fi
+}
+
+ralph_backend_skills_are_isolated() {
+  local skills_dir="$RALPH_BACKEND_CODEX_HOME/skills"
+  local entry
+
+  if [[ ! -e "$skills_dir" && ! -L "$skills_dir" ]]; then
+    return 0
+  fi
+  if [[ ! -d "$skills_dir" || -L "$skills_dir" ]]; then
+    return 1
+  fi
+  while IFS= read -r -d '' entry; do
+    if [[ "$(basename "$entry")" != ".system" || ! -d "$entry" || -L "$entry" ]]; then
+      return 1
+    fi
+  done < <(find "$skills_dir" -mindepth 1 -maxdepth 1 -print0)
 }
 
 check_global_git_guidance() {
@@ -298,6 +316,7 @@ check_dependencies() {
   local dependency
   local path_ralph
   local managed_ralph="$BIN_DIR/ralph"
+  local source_codex_home
 
   while IFS= read -r dependency; do
     case "$dependency" in
@@ -343,6 +362,20 @@ check_dependencies() {
           ok "managed Ralph source is clean and pinned"
         else
           fail "managed Ralph source is missing, modified, has an unexpected origin, or differs from the pinned revision"
+        fi
+        if [[ -e "$RALPH_BACKEND_CODEX_HOME" || -L "$RALPH_BACKEND_CODEX_HOME" ]]; then
+          source_codex_home="$(cd "$CODEX_CONFIG_DIR" 2>/dev/null && pwd -P)"
+          if [[ -n "$source_codex_home" && -d "$RALPH_BACKEND_CODEX_HOME" && ! -L "$RALPH_BACKEND_CODEX_HOME" ]] &&
+            ralph_backend_skills_are_isolated &&
+            [[ ! -e "$RALPH_BACKEND_CODEX_HOME/AGENTS.md" && ! -L "$RALPH_BACKEND_CODEX_HOME/AGENTS.md" ]] &&
+            { [[ ! -f "$source_codex_home/auth.json" && ! -e "$RALPH_BACKEND_CODEX_HOME/auth.json" && ! -L "$RALPH_BACKEND_CODEX_HOME/auth.json" ]] ||
+              [[ -L "$RALPH_BACKEND_CODEX_HOME/auth.json" && "$(readlink "$RALPH_BACKEND_CODEX_HOME/auth.json")" == "$source_codex_home/auth.json" ]]; } &&
+            { [[ ! -f "$source_codex_home/config.toml" && ! -e "$RALPH_BACKEND_CODEX_HOME/config.toml" && ! -L "$RALPH_BACKEND_CODEX_HOME/config.toml" ]] ||
+              [[ -L "$RALPH_BACKEND_CODEX_HOME/config.toml" && "$(readlink "$RALPH_BACKEND_CODEX_HOME/config.toml")" == "$source_codex_home/config.toml" ]]; }; then
+            ok "managed Ralph backend Codex home isolates global skills and reuses supervising auth/config"
+          else
+            fail "managed Ralph backend Codex home is invalid, stale, or exposes global skills/guidance"
+          fi
         fi
         path_ralph="$(command -v ralph 2>/dev/null || true)"
         if [[ -n "$path_ralph" && "$path_ralph" != "$managed_ralph" ]]; then

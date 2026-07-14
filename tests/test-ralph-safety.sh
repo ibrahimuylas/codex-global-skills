@@ -6,7 +6,10 @@ TEST_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/codex-global-skills-ralph.XXXXXX")"
 TEST_RUNTIME="$TEST_ROOT/ralph-skill"
 TEST_CODEX_BIN="$TEST_ROOT/codex-bin"
 export CODEX_GLOBAL_SKILLS_HOME="$TEST_ROOT/state"
-mkdir -p "$TEST_RUNTIME"
+export CODEX_HOME="$TEST_ROOT/codex-home"
+mkdir -p "$TEST_RUNTIME" "$CODEX_HOME"
+printf '%s\n' 'test-auth' > "$CODEX_HOME/auth.json"
+printf '%s\n' 'model = "gpt-5.6-sol"' > "$CODEX_HOME/config.toml"
 cp -R "$ROOT/skills/ralph/scripts" "$TEST_RUNTIME/scripts"
 cp -R "$ROOT/skills/ralph/assets" "$TEST_RUNTIME/assets"
 PREPARE="$TEST_RUNTIME/scripts/prepare-safe-build-prompt.sh"
@@ -20,6 +23,7 @@ mkdir -p "$TEST_CODEX_BIN"
 printf '%s\n' \
   '#!/usr/bin/env bash' \
   'if [[ "${1:-}" == "--version" ]]; then echo "codex-cli 0.144.4"; exit 0; fi' \
+  'if [[ -n "${RALPH_TEST_CODEX_HOME_PATH:-}" ]]; then printf "%s\n" "${CODEX_HOME:-}" > "$RALPH_TEST_CODEX_HOME_PATH"; fi' \
   'if [[ -n "${RALPH_TEST_CODEX_ARGS_PATH:-}" ]]; then printf "%s\n" "$@" > "$RALPH_TEST_CODEX_ARGS_PATH"; fi' > "$TEST_CODEX_BIN/codex"
 printf '%s\n' '#!/usr/bin/env bash' 'echo "0.87.0"' > "$TEST_CODEX_BIN/devcontainer"
 chmod +x "$TEST_CODEX_BIN/codex" "$TEST_CODEX_BIN/devcontainer"
@@ -189,6 +193,9 @@ test_codex_model_deferral_is_scoped() {
   ! grep -Fqx -- '--model' "$arguments" || fail_test "Codex shim retained Ralph's upstream model option"
   ! grep -Fqx 'gpt-5.2-codex' "$arguments" || fail_test "Codex shim retained Ralph's upstream model value"
   grep -Fqx exec "$arguments" || fail_test "Codex shim did not preserve the exec command"
+  grep -Fqx -- '--ephemeral' "$arguments" || fail_test "Codex shim did not make the backend session ephemeral"
+  grep -Fqx -- '--disable' "$arguments" || fail_test "Codex shim did not disable backend plugins"
+  grep -Fqx plugins "$arguments" || fail_test "Codex shim did not scope the plugin disablement"
   grep -Fqx prompt "$arguments" || fail_test "Codex shim did not preserve the prompt"
 
   RALPH_SYSTEM_CODEX="$TEST_CODEX_BIN/codex" \
@@ -216,8 +223,12 @@ test_runner_defers_to_codex_model_configuration() {
   local config="$TEST_ROOT/model-deferral-config"
   local managed_ralph="$fake_bin/managed-ralph"
   local arguments="$TEST_ROOT/model-deferral-args"
+  local codex_home_path="$TEST_ROOT/model-deferral-codex-home"
+  local backend_codex_home="$CODEX_GLOBAL_SKILLS_HOME/ralph-backend-home"
+  local source_codex_home
 
   mkdir -p "$repository" "$fake_bin"
+  source_codex_home="$(cd "$CODEX_HOME" && pwd -P)"
   git -C "$repository" init -q
   git -C "$repository" config user.name 'Codex Test'
   git -C "$repository" config user.email 'codex-test@example.invalid'
@@ -242,15 +253,26 @@ test_runner_defers_to_codex_model_configuration() {
     RALPH_BIN_PATH="$managed_ralph" \
       RALPH_CONFIG_DIR="$config" \
       RALPH_TEST_CODEX_ARGS_PATH="$arguments" \
+      RALPH_TEST_CODEX_HOME_PATH="$codex_home_path" \
       "$RUN_SAFE" -b codex -n 1
   ) >"$TEST_ROOT/model-deferral.log" 2>&1
 
   ! grep -Fqx -- '--model' "$arguments" || fail_test "guarded runner retained Ralph's upstream model option"
   ! grep -Fqx 'gpt-5.2-codex' "$arguments" || fail_test "guarded runner retained Ralph's upstream model value"
   grep -Fqx -- '--json' "$arguments" || fail_test "guarded runner did not preserve Codex arguments"
+  grep -Fqx "$backend_codex_home" "$codex_home_path" || fail_test "guarded runner did not isolate the backend Codex home"
+  [[ -L "$backend_codex_home/auth.json" && "$(readlink "$backend_codex_home/auth.json")" == "$source_codex_home/auth.json" ]] ||
+    fail_test "guarded runner did not reuse supervising Codex authentication"
+  [[ -L "$backend_codex_home/config.toml" && "$(readlink "$backend_codex_home/config.toml")" == "$source_codex_home/config.toml" ]] ||
+    fail_test "guarded runner did not reuse supervising Codex configuration"
+  [[ ! -e "$backend_codex_home/skills/ralph" && ! -L "$backend_codex_home/skills/ralph" ]] ||
+    fail_test "guarded runner exposed Ralph to its backend"
+  [[ ! -e "$backend_codex_home/AGENTS.md" && ! -L "$backend_codex_home/AGENTS.md" ]] ||
+    fail_test "guarded runner exposed global AGENTS guidance to its backend"
   grep -Fq 'will let Codex choose its configured model' "$TEST_ROOT/model-deferral.log" ||
     fail_test "guarded runner did not explain Ralph's stale model banner"
 
+  mkdir -p "$backend_codex_home/skills/.system"
   (
     cd "$repository"
     RALPH_BIN_PATH="$managed_ralph" \
@@ -271,6 +293,32 @@ test_runner_defers_to_codex_model_configuration() {
   )
   grep -Fqx -- '--model' "$arguments" || fail_test "guarded runner removed the configured model option"
   grep -Fqx 'gpt-5.7' "$arguments" || fail_test "guarded runner did not preserve the configured model value"
+
+  mkdir -p "$backend_codex_home/skills/ralph"
+  if (
+    cd "$repository"
+    RALPH_BIN_PATH="$managed_ralph" \
+      RALPH_CONFIG_DIR="$config" \
+      "$RUN_SAFE" -b codex -n 1
+  ) >"$TEST_ROOT/recursive-skill-exposure.log" 2>&1; then
+    fail_test "guarded runner accepted a discoverable Ralph skill in its backend home"
+  fi
+  grep -Fq 'must expose only Codex built-in .system skills' "$TEST_ROOT/recursive-skill-exposure.log" ||
+    fail_test "Ralph skill exposure failure was not actionable"
+  rmdir "$backend_codex_home/skills/ralph"
+
+  mkdir -p "$TEST_ROOT/alternate-codex-home"
+  if (
+    cd "$repository"
+    CODEX_HOME="$TEST_ROOT/alternate-codex-home" \
+      RALPH_BIN_PATH="$managed_ralph" \
+      RALPH_CONFIG_DIR="$config" \
+      "$RUN_SAFE" -b codex -n 1
+  ) >"$TEST_ROOT/stale-backend-home.log" 2>&1; then
+    fail_test "guarded runner reused backend credentials from a different supervising Codex home"
+  fi
+  grep -Fq 'contains a stale link' "$TEST_ROOT/stale-backend-home.log" ||
+    fail_test "stale backend Codex home failure was not actionable"
   echo "[OK] guarded Ralph defers model choice to Codex unless explicitly overridden"
 }
 

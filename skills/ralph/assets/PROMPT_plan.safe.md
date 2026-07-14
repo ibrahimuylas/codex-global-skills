@@ -3,6 +3,8 @@
 
 Create or update a reviewable implementation plan without implementing product code or changing Git history.
 
+You are already the inner planning agent. Do not invoke Ralph, its skill, its scripts, or another agent loop; perform the planning work directly.
+
 ## Goal
 
 {{GOAL}}

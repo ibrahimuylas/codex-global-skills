@@ -263,6 +263,12 @@ validate_ralph_pin() {
     fail "Ralph guarded runner is missing its Codex model-deferral shim"
   grep -Fq 'RALPH_CODEX_DEFER_MODEL=$CODEX_DEFER_MODEL' "$SCRIPT_DIR/skills/ralph/scripts/run-guarded.sh" ||
     fail "Ralph guarded runner does not scope Codex model deferral"
+  grep -Fq 'CODEX_HOME=$BACKEND_CODEX_HOME' "$SCRIPT_DIR/skills/ralph/scripts/run-guarded.sh" ||
+    fail "Ralph guarded runner does not isolate its backend Codex home"
+  grep -Fq 'arguments=(exec --ephemeral --disable plugins)' "$SCRIPT_DIR/skills/ralph/scripts/codex-shim/codex" ||
+    fail "Ralph Codex shim does not isolate backend sessions and plugins"
+  grep -Fq 'managed Ralph backend Codex home isolates global skills' "$SCRIPT_DIR/doctor.sh" ||
+    fail "doctor does not verify the managed Ralph backend Codex home"
   grep -Fq "@openai/codex@$codex_version" "$SCRIPT_DIR/skills/ralph/assets/Dockerfile.safe" || fail "guarded Ralph Dockerfile does not use the Codex pin"
   if grep -Eq 'docker\.sock|network=host|localEnv:HOME|/home/node/\.ssh|/home/node/\.config/gh' "$SCRIPT_DIR/skills/ralph/assets/devcontainer.safe.json"; then
     fail "guarded Ralph devcontainer exposes a host escape or host credential mount"

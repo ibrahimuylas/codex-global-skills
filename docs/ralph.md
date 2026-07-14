@@ -54,6 +54,8 @@ Ralph constructs its banner and dry-run text before invoking Codex, so those dis
 
 The runner also enforces the reviewed Codex CLI version, checksum-reviewed `global-skill.env`, and Codex backend. A stale host CLI, modified managed defaults file, or sandbox rebuilt with a different Codex version fails before the agent loop starts.
 
+The inner `codex exec` process uses `${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}/ralph-backend-home` as a managed `CODEX_HOME`. That home links to the supervising Codex authentication and configuration so account and model choices remain available, but it contains no global skills or global `AGENTS.md`. Plugins are disabled and the child session is ephemeral. This prevents the inner agent from discovering the Ralph skill and recursively waiting on its own parent loop; repository-local instructions continue to load from the target worktree.
+
 For defense in depth, the guarded runner blocks ordinary `git push` and `git send-pack` commands, including literal-URL pushes, overrides configured remote push URLs, and supplies `--skip-push` before caller options. This is not a network sandbox: an unrestricted backend could invoke an absolute binary, alter its environment, or use another network client. The skill reports this residual boundary and never describes publication as technically impossible.
 
 The pinned CLI expects GNU-style `getopt`. The wrapper places a narrowly scoped compatibility helper first on Ralph's subprocess `PATH`, handling only Ralph's exact option schema and delegating every other `getopt` invocation to the original executable. This keeps backend selection and safety flags working on macOS without changing the developer's shell configuration.

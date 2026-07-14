@@ -3,6 +3,8 @@
 
 Implement exactly one item from the project plan without creating Git history or writing to a remote.
 
+You are already the inner build agent. Do not invoke Ralph, its skill, its scripts, or another agent loop; perform the implementation work directly.
+
 ## Goal
 
 {{GOAL}}
