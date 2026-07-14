@@ -220,7 +220,7 @@ test_reviewed_ralph_runtime_preserves_user_config() {
   [[ -x "$bin/ralph" ]] || fail_test "reviewed Ralph CLI was not installed executable"
   [[ -f "$config/prompts/plan.md" && -f "$config/container/devcontainer.json" ]] || fail_test "reviewed Ralph config was incomplete"
   grep -Fqx 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$config/global-skill.env" || fail_test "reviewed Ralph config did not set Codex as the global-skill backend"
-  grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5-codex}"' "$config/global-skill.env" ||
+  grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5.6-sol}"' "$config/global-skill.env" ||
     fail_test "reviewed Ralph config did not set the global-skill Codex model"
   grep -Fqx 'user-owned extra config' "$config/custom.txt" || fail_test "Ralph runtime install changed unrelated config"
 
@@ -306,11 +306,11 @@ test_contract_scoped_ralph_runtime_upgrades_without_overwrite() {
 
     grep -Fq 'version-one' "$first_runtime/bin/ralph"
     grep -Fqx 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$first_runtime/config/global-skill.env"
-    grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5-codex}"' "$first_runtime/config/global-skill.env"
+    grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5.6-sol}"' "$first_runtime/config/global-skill.env"
     grep -Fq 'plan one' "$first_runtime/config/prompts/plan.md"
     grep -Fq 'version-two' "$second_runtime/bin/ralph"
     grep -Fqx 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$second_runtime/config/global-skill.env"
-    grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5-codex}"' "$second_runtime/config/global-skill.env"
+    grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5.6-sol}"' "$second_runtime/config/global-skill.env"
     grep -Fq 'plan two' "$second_runtime/config/prompts/plan.md"
 
     printf '%s\n' '#!/usr/bin/env bash' 'echo version-three' > "$source/ralph"
@@ -546,7 +546,7 @@ test_dependency_version_mismatch_fails_without_installing() {
     "$ROOT/install.sh" --pack ralph >"$fixture/install.log" 2>&1; then
     fail_test "installer accepted an unpinned selected CLI"
   fi
-  grep -Fq 'Dependency version mismatch: codex 0.1.0 (required 0.143.0)' "$fixture/install.log" || fail_test "dependency version failure was not actionable"
+  grep -Fq 'Dependency version mismatch: codex 0.1.0 (required 0.144.4)' "$fixture/install.log" || fail_test "dependency version failure was not actionable"
   [[ ! -e "$fixture/codex/skills/ralph" ]] || fail_test "version mismatch changed installed skills"
   pass_test "selected CLI versions are enforced"
 }

@@ -16,7 +16,7 @@ INIT_SAFE="$TEST_RUNTIME/scripts/init-safe.sh"
 RUN_SANDBOX="$TEST_RUNTIME/scripts/run-sandbox-guarded.sh"
 SAFE_TEMPLATE="$TEST_RUNTIME/assets/PROMPT_build.safe.md"
 mkdir -p "$TEST_CODEX_BIN"
-printf '%s\n' '#!/usr/bin/env bash' 'echo "codex-cli 0.143.0"' > "$TEST_CODEX_BIN/codex"
+printf '%s\n' '#!/usr/bin/env bash' 'echo "codex-cli 0.144.4"' > "$TEST_CODEX_BIN/codex"
 printf '%s\n' '#!/usr/bin/env bash' 'echo "0.87.0"' > "$TEST_CODEX_BIN/devcontainer"
 chmod +x "$TEST_CODEX_BIN/codex" "$TEST_CODEX_BIN/devcontainer"
 PATH="$TEST_CODEX_BIN:$PATH"
@@ -64,7 +64,7 @@ set_test_ralph_pin() {
 
 set_test_sandbox_pin() {
   local config="$1"
-  local codex_version="${2:-0.143.0}"
+  local codex_version="${2:-0.144.4}"
   local safe_dockerfile="$TEST_RUNTIME/assets/Dockerfile.safe"
   local next_dockerfile="$TEST_RUNTIME/assets/.Dockerfile.safe.next"
 
@@ -215,7 +215,7 @@ test_runner_blocks_configured_remote() {
       "$RUN_SAFE" -b codex -n 1
   )
 
-  grep -Fq 'build --skip-push --model gpt-5-codex -b codex -n 1' "$TEST_ROOT/args" ||
+  grep -Fq 'build --skip-push --model gpt-5.6-sol -b codex -n 1' "$TEST_ROOT/args" ||
     fail_test "safe runner did not enforce Ralph skip-push and managed model before caller arguments"
   grep -Fqx 'disabled://codex-global-skills/no-remote-write' "$TEST_ROOT/pushurl" || fail_test "safe runner did not override the configured push URL"
   grep -Fqx blocked "$TEST_ROOT/push-result" || fail_test "configured remote write was not blocked"
@@ -699,7 +699,7 @@ test_plan_uses_guarded_managed_runtime() {
 
   [[ "$(git -C "$repository" rev-parse HEAD)" == "$head_before" ]] || fail_test "guarded plan changed HEAD"
   cmp -s "$TEST_RUNTIME/assets/PROMPT_plan.safe.md" "$TEST_ROOT/plan-prompt-used" || fail_test "guarded plan did not use the reviewed prompt"
-  grep -Fq 'plan --skip-push --model gpt-5-codex -b codex -n 1 -g Plan the parser --' "$TEST_ROOT/plan-args" ||
+  grep -Fq 'plan --skip-push --model gpt-5.6-sol -b codex -n 1 -g Plan the parser --' "$TEST_ROOT/plan-args" ||
     fail_test "guarded plan did not enforce the managed option path"
   grep -Fq 'Planned item' "$repository/IMPLEMENTATION_PLAN.md" || fail_test "guarded plan fixture produced no plan result"
   [[ ! -e "$repository/PROMPT_plan.md" ]] || fail_test "guarded plan left its generated prompt"
@@ -849,7 +849,7 @@ test_runner_resolves_devcontainer_mount() {
   )
 
   grep -Fqx sandbox "$TEST_ROOT/devcontainer-result" || fail_test "guarded runner did not resolve the devcontainer Ralph mount"
-  grep -Fq 'build --skip-push --model gpt-5-codex --iterations 1 --backend codex' "$TEST_ROOT/devcontainer-args" ||
+  grep -Fq 'build --skip-push --model gpt-5.6-sol --iterations 1 --backend codex' "$TEST_ROOT/devcontainer-args" ||
     fail_test "guarded runner did not enforce one iteration, managed model, and the pinned Codex backend"
   echo "[OK] guarded Ralph resolves the verified devcontainer mount"
 }

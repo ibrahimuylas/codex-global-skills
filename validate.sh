@@ -251,7 +251,7 @@ validate_ralph_pin() {
     fail "guarded Ralph global-skill defaults differ from their pin"
   grep -Fqx 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$SCRIPT_DIR/skills/ralph/assets/global-skill.env" ||
     fail "guarded Ralph global-skill defaults do not select Codex"
-  grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5-codex}"' "$SCRIPT_DIR/skills/ralph/assets/global-skill.env" ||
+  grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5.6-sol}"' "$SCRIPT_DIR/skills/ralph/assets/global-skill.env" ||
     fail "guarded Ralph global-skill defaults do not select the reviewed Codex model"
   grep -Fq 'MODEL_ARGUMENT_SUPPLIED=1' "$SCRIPT_DIR/skills/ralph/scripts/run-guarded.sh" ||
     fail "Ralph guarded runner does not preserve explicit model requests"

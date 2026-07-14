@@ -33,7 +33,7 @@ The installer:
 
 - resolves the union of selected pack manifests under `packs/`
 - checks dependencies without changing them unless `--install-dependencies` is supplied
-- verifies OpenAI Codex CLI `0.143.0` and devcontainer CLI `0.87.0`, and installs missing or mismatched selected versions from exact npm packages only when explicitly requested
+- verifies OpenAI Codex CLI `0.144.4` and devcontainer CLI `0.87.0`, and installs missing or mismatched selected versions from exact npm packages only when explicitly requested
 - initializes the pinned EE toolkit only when selected and explicitly requested
 - synchronizes Ralph source at pinned commit `3c53c0ed8ed549c6aa15d9f364ae474b2b19ac10`, then publishes only its reviewed CLI, Codex global-skill defaults, plan/build prompts, and source container files into managed state; it never runs Ralph's upstream installer against personal `~/.config/ralph` content
 - verifies existing skill ownership, content hashes, symlink targets, and executable modes before staging a replacement

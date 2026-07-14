@@ -73,10 +73,10 @@ If a project already owns `PROMPT_plan.md` or `PROMPT_build.md`, the matching wr
 The `ralph` and `developer` packs require:
 
 - Ralph CLI from pinned commit `3c53c0ed8ed549c6aa15d9f364ae474b2b19ac10`
-- OpenAI Codex CLI `0.143.0`, synchronized from `@openai/codex@0.143.0` when explicitly requested
+- OpenAI Codex CLI `0.144.4`, synchronized from `@openai/codex@0.144.4` when explicitly requested
 - Devcontainer CLI `0.87.0`, synchronized from `@devcontainers/cli@0.87.0` when explicitly requested
 
-`./install.sh` checks these commands and exact versions without changing the machine. Use `./install.sh --pack ralph --install-dependencies` to install missing or mismatched pinned dependencies and synchronize the managed Ralph checkout. Instead of running Ralph's upstream installer against personal configuration, it publishes only checksum-reviewed files under `${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}/ralph-runtimes/<runtime-id>/`, including `global-skill.env` with `RALPH_GLOBAL_SKILL_BACKEND=codex` and a managed Codex model default of `gpt-5-codex`. A future pin receives a new directory, so the prior runtime remains intact and a partial publish can be rolled back safely. Ralph need not be on `PATH`, and the installer never edits a shell profile or changes raw Ralph's default for other tools.
+`./install.sh` checks these commands and exact versions without changing the machine. Use `./install.sh --pack ralph --install-dependencies` to install missing or mismatched pinned dependencies and synchronize the managed Ralph checkout. Instead of running Ralph's upstream installer against personal configuration, it publishes only checksum-reviewed files under `${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}/ralph-runtimes/<runtime-id>/`, including `global-skill.env` with `RALPH_GLOBAL_SKILL_BACKEND=codex` and a managed Codex model default of `gpt-5.6-sol`. A future pin receives a new directory, so the prior runtime remains intact and a partial publish can be rolled back safely. Ralph need not be on `PATH`, and the installer never edits a shell profile or changes raw Ralph's default for other tools.
 
 Set `RALPH_GLOBAL_SKILL_MODEL` before invoking the guarded wrapper when a specific account or Codex installation needs a different supported model. An explicit `--model` argument takes precedence for that one run.
 
