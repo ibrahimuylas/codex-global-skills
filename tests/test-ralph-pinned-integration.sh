@@ -58,10 +58,12 @@ refs_before="$(git -C "$WORKTREE" for-each-ref --format='%(refname)%09%(objectna
 [[ "$(git -C "$WORKTREE" write-tree)" == "$index_before" ]]
 [[ "$(git -C "$WORKTREE" for-each-ref --format='%(refname)%09%(objectname)')" == "$refs_before" ]]
 grep -Fq '[dry-run] Prompt content (PROMPT_build.md with goal substituted):' "$LOG_DIR/ralph.log"
-grep -Fq -- '--backend codex' "$LOG_DIR/ralph.log"
+grep -Fq 'Backend: codex' "$LOG_DIR/ralph.log"
+grep -Fq 'Model:   gpt-5.2-codex' "$LOG_DIR/ralph.log"
 grep -Fq 'Do not stage files, create commits, amend history, tag, publish, or write to any remote.' "$LOG_DIR/ralph.log"
 grep -Fq '[dry-run] Prompt content (PROMPT_plan.md with goal substituted):' "$LOG_DIR/ralph-plan.log"
-grep -Fq -- '--backend codex' "$LOG_DIR/ralph-plan.log"
+grep -Fq 'Backend: codex' "$LOG_DIR/ralph-plan.log"
+grep -Fq 'Model:   gpt-5.2-codex' "$LOG_DIR/ralph-plan.log"
 grep -Fq 'Do not implement source changes, fix tests, install dependencies, or start a build item.' "$LOG_DIR/ralph-plan.log"
 
 echo "[OK] real pinned Ralph plan/build dry-runs honor the reviewed wrapper contract"

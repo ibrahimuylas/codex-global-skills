@@ -207,12 +207,13 @@ validate_ralph_pin() {
     return
   fi
   assignment_count="$(grep -Ec '^[A-Z0-9_]+=' "$pin_file" || true)"
-  if [[ "$assignment_count" -ne 13 ]] ||
+  if [[ "$assignment_count" -ne 14 ]] ||
     ! grep -Eq '^RALPH_PIN_REPO_URL=https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\.git$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_REVISION=[0-9a-f]{40}$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_CLI_SHA256=[0-9a-f]{64}$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256=[0-9a-f]{64}$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_CODEX_VERSION=[0-9]+\.[0-9]+\.[0-9]+$' "$pin_file" ||
+    ! grep -Eq '^RALPH_PIN_UPSTREAM_CODEX_DEFAULT_MODEL=[A-Za-z0-9._-]+$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_DEVCONTAINER_VERSION=[0-9]+\.[0-9]+\.[0-9]+$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_PLAN_PROMPT_SHA256=[0-9a-f]{64}$' "$pin_file" ||
     ! grep -Eq '^RALPH_PIN_BUILD_PROMPT_SHA256=[0-9a-f]{64}$' "$pin_file" ||
@@ -258,6 +259,10 @@ validate_ralph_pin() {
     fail "Ralph guarded runner does not preserve explicit model requests"
   grep -Fq -- '&& -n "${RALPH_GLOBAL_SKILL_MODEL:-}"' "$SCRIPT_DIR/skills/ralph/scripts/run-guarded.sh" ||
     fail "Ralph guarded runner does not keep model override optional"
+  [[ -x "$SCRIPT_DIR/skills/ralph/scripts/codex-shim/codex" && ! -L "$SCRIPT_DIR/skills/ralph/scripts/codex-shim/codex" ]] ||
+    fail "Ralph guarded runner is missing its Codex model-deferral shim"
+  grep -Fq 'RALPH_CODEX_DEFER_MODEL=$CODEX_DEFER_MODEL' "$SCRIPT_DIR/skills/ralph/scripts/run-guarded.sh" ||
+    fail "Ralph guarded runner does not scope Codex model deferral"
   grep -Fq "@openai/codex@$codex_version" "$SCRIPT_DIR/skills/ralph/assets/Dockerfile.safe" || fail "guarded Ralph Dockerfile does not use the Codex pin"
   if grep -Eq 'docker\.sock|network=host|localEnv:HOME|/home/node/\.ssh|/home/node/\.config/gh' "$SCRIPT_DIR/skills/ralph/assets/devcontainer.safe.json"; then
     fail "guarded Ralph devcontainer exposes a host escape or host credential mount"

@@ -29,7 +29,7 @@ Use ralph with EE rules to create a spec and plan it.
 - Reads repository instructions, branch and working-tree state, diffs, specs, plans, progress, and Ralph configuration before mutations.
 - Creates the next numbered spec under `specs/`, or updates a named spec only when requested.
 - Uses `scripts/init-safe.sh` only when required artifacts are absent. It creates missing `specs/`, `IMPLEMENTATION_PLAN.md`, and `PROGRESS.md` without touching `.gitignore`, `.claude/`, or existing artifacts.
-- Uses the managed Codex backend from `global-skill.env` while leaving the model to the developer's Codex configuration unless explicitly overridden; raw Ralph remains unchanged and may keep its own defaults elsewhere.
+- Uses the managed Codex backend from `global-skill.env` while leaving the model to the developer's Codex configuration unless explicitly overridden; the guarded process removes pinned Ralph's upstream model argument, while raw Ralph remains unchanged.
 - Uses a guarded planner and the bundled uncommitted-build wrapper; raw `ralph init`, `ralph plan`, and `ralph build` are not used.
 - The planner permits changes only to `IMPLEMENTATION_PLAN.md` and `specs/`; any new Git-visible mutation elsewhere fails while preserving evidence.
 - Requires a clean build workspace unless all existing changes are confirmed build inputs.
@@ -48,7 +48,9 @@ The skill resolves its installed directory and uses these helpers rather than ra
 
 The pinned Ralph backend prompt invokes Ralph's bundled commit skill, which imposes Conventional Commits and an attribution footer even when a repository has different rules. It also contains `git push`, which runs before Ralph's wrapper evaluates `--skip-push`.
 
-Therefore the skill uses guarded plan/build helpers that verify and execute the managed pinned Ralph binary directly (ignoring PATH shadows), source the managed `global-skill.env` defaults, normalize every Ralph option, append the managed Codex backend defensively, substitute byte-for-byte reviewed prompts, and keep initialization independent of Ralph's opinionated scaffold. On the host the default binary lives under `${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}/ralph-runtimes/<runtime-id>/bin/ralph`; inside Ralph's devcontainer it verifies the contract-scoped `/usr/local/bin/ralph` mount.
+Therefore the skill uses guarded plan/build helpers that verify and execute the managed pinned Ralph binary directly (ignoring PATH shadows), source the managed `global-skill.env` defaults, normalize every Ralph option, append the managed Codex backend defensively, substitute byte-for-byte reviewed prompts, and keep initialization independent of Ralph's opinionated scaffold. When no model override was requested, a narrowly scoped Codex shim removes only the pinned Ralph CLI's reviewed `--model gpt-5.2-codex` pair before delegating to the verified Codex CLI. Codex then applies its own configuration. On the host the default Ralph binary lives under `${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}/ralph-runtimes/<runtime-id>/bin/ralph`; inside Ralph's devcontainer it verifies the contract-scoped `/usr/local/bin/ralph` mount.
+
+Ralph constructs its banner and dry-run text before invoking Codex, so those displays still show its internal `gpt-5.2-codex` default. During a real guarded run without an override, the wrapper prints a model-deferral notice and the shim removes that model pair before execution. An explicit `--model` or `RALPH_GLOBAL_SKILL_MODEL` value is preserved instead.
 
 The runner also enforces the reviewed Codex CLI version, checksum-reviewed `global-skill.env`, and Codex backend. A stale host CLI, modified managed defaults file, or sandbox rebuilt with a different Codex version fails before the agent loop starts.
 

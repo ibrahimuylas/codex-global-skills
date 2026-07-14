@@ -17,7 +17,8 @@ Use Ralph as the loop runner while keeping the user in Codex chat. Prefer cautio
 ## Operating Model
 
 - Work in the current project directory unless the user names another path.
-- Use the managed Codex backend and the developer's Codex model selection. Do not pass a backend unless checking or explaining a rejection; the guarded runner sources `global-skill.env`, enforces Codex, and only passes a model when the user explicitly requests `--model` or exports `RALPH_GLOBAL_SKILL_MODEL`.
+- Use the managed Codex backend and the developer's Codex model selection. Do not pass a backend unless checking or explaining a rejection; the guarded runner sources `global-skill.env`, enforces Codex, and removes pinned Ralph's upstream model argument when no model override was requested so Codex can use its own configuration.
+- Treat Ralph's displayed upstream model as informational only during model deferral. The guarded runner prints a notice because Ralph builds its banner before the scoped Codex shim removes that unpassed default.
 - Never run raw `ralph init`, `ralph plan`, or `ralph build`. Pinned init scaffolds an opinionated commit skill, and the upstream plan/build paths trust mutable prompts and PATH resolution. Use this skill's reviewed init, plan, and build helpers. Use global `$commit` and `$git-workflow` separately when the user authorizes those outcomes.
 - Use one build iteration by default: `-n 1`.
 - For plan/build, let the guarded runner resolve and checksum the managed Ralph binary. By default it uses `${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}/ralph-runtimes/<runtime-id>/bin/ralph` on the host and the verified `/usr/local/bin/ralph` mount when `DEVCONTAINER=true`, deliberately ignoring an unrelated `ralph` earlier on `PATH`.

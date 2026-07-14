@@ -12,8 +12,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STATE_DIR="${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}"
 RALPH_PIN_FILE="$SCRIPT_DIR/../assets/ralph-pin.env"
 GETOPT_COMPAT_DIR="$SCRIPT_DIR/compat"
+CODEX_SHIM_DIR="$SCRIPT_DIR/codex-shim"
 SYSTEM_GETOPT="$(command -v getopt 2>/dev/null || true)"
 SYSTEM_GIT="$(command -v git 2>/dev/null || true)"
+SYSTEM_CODEX="$(command -v codex 2>/dev/null || true)"
 CREATED_PROMPT=0
 CREATED_PROMPT_HASH=""
 NORMALIZED_RALPH_ARGUMENTS=()
@@ -393,11 +395,11 @@ if [[ "$(sha256_file "$RALPH_BINARY")" != "$RALPH_PIN_CLI_SHA256" ]]; then
   echo "Ralph executable does not match the reviewed pinned CLI: $RALPH_BINARY" >&2
   exit 1
 fi
-if ! command -v codex >/dev/null 2>&1; then
+if [[ -z "$SYSTEM_CODEX" || ! -x "$SYSTEM_CODEX" ]]; then
   echo "Pinned Codex CLI is missing; guarded Ralph requires Codex $RALPH_PIN_CODEX_VERSION" >&2
   exit 1
 fi
-CODEX_VERSION="$(codex --version 2>/dev/null | sed -n '1s/.* //p')"
+CODEX_VERSION="$("$SYSTEM_CODEX" --version 2>/dev/null | sed -n '1s/.* //p')"
 if [[ "$CODEX_VERSION" != "$RALPH_PIN_CODEX_VERSION" ]]; then
   echo "Codex CLI version is ${CODEX_VERSION:-unknown}; guarded Ralph requires $RALPH_PIN_CODEX_VERSION" >&2
   exit 1
@@ -408,6 +410,10 @@ for helper in "$GETOPT_COMPAT_DIR/getopt" "$GETOPT_COMPAT_DIR/git"; do
     exit 1
   fi
 done
+if [[ ! -x "$CODEX_SHIM_DIR/codex" || -L "$CODEX_SHIM_DIR/codex" ]]; then
+  echo "Ralph Codex compatibility shim is missing or invalid: $CODEX_SHIM_DIR/codex" >&2
+  exit 1
+fi
 if [[ -z "$SYSTEM_GIT" || ! -x "$SYSTEM_GIT" ]] || ! "$SYSTEM_GIT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "Run the guarded Ralph $MODE wrapper inside a Git worktree" >&2
   exit 1
@@ -441,6 +447,14 @@ if [[ -n "${RALPH_GLOBAL_SKILL_MODEL:-}" && ! "$RALPH_GLOBAL_SKILL_MODEL" =~ ^[A
 fi
 normalize_ralph_arguments "$@"
 
+CODEX_DEFER_MODEL=1
+if [[ "$MODEL_ARGUMENT_SUPPLIED" -eq 1 || -n "${RALPH_GLOBAL_SKILL_MODEL:-}" ]]; then
+  CODEX_DEFER_MODEL=0
+fi
+if [[ "$CODEX_DEFER_MODEL" -eq 1 ]]; then
+  echo "Guarded Ralph will let Codex choose its configured model; Ralph's banner may still display its unpassed upstream default." >&2
+fi
+
 if [[ -e "$LOCAL_PROMPT" || -L "$LOCAL_PROMPT" ]]; then
   if [[ -L "$LOCAL_PROMPT" || ! -f "$LOCAL_PROMPT" ]]; then
     echo "Project-local $MODE prompt is not a regular file: $LOCAL_PROMPT" >&2
@@ -464,9 +478,12 @@ done < <("$SYSTEM_GIT" remote)
 
 environment=(
   "GIT_CONFIG_COUNT=${#remotes[@]}"
-  "PATH=$GETOPT_COMPAT_DIR:${PATH:-}"
+  "PATH=$CODEX_SHIM_DIR:$GETOPT_COMPAT_DIR:${PATH:-}"
   "RALPH_SYSTEM_GETOPT=$SYSTEM_GETOPT"
   "RALPH_SYSTEM_GIT=$SYSTEM_GIT"
+  "RALPH_SYSTEM_CODEX=$SYSTEM_CODEX"
+  "RALPH_CODEX_DEFER_MODEL=$CODEX_DEFER_MODEL"
+  "RALPH_CODEX_UPSTREAM_DEFAULT_MODEL=$RALPH_PIN_UPSTREAM_CODEX_DEFAULT_MODEL"
 )
 index=0
 if [[ "${#remotes[@]}" -gt 0 ]]; then

@@ -14,9 +14,13 @@ RUN_SAFE="$TEST_RUNTIME/scripts/run-build-no-push.sh"
 RUN_PLAN="$TEST_RUNTIME/scripts/run-plan-guarded.sh"
 INIT_SAFE="$TEST_RUNTIME/scripts/init-safe.sh"
 RUN_SANDBOX="$TEST_RUNTIME/scripts/run-sandbox-guarded.sh"
+CODEX_SHIM="$TEST_RUNTIME/scripts/codex-shim/codex"
 SAFE_TEMPLATE="$TEST_RUNTIME/assets/PROMPT_build.safe.md"
 mkdir -p "$TEST_CODEX_BIN"
-printf '%s\n' '#!/usr/bin/env bash' 'echo "codex-cli 0.144.4"' > "$TEST_CODEX_BIN/codex"
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'if [[ "${1:-}" == "--version" ]]; then echo "codex-cli 0.144.4"; exit 0; fi' \
+  'if [[ -n "${RALPH_TEST_CODEX_ARGS_PATH:-}" ]]; then printf "%s\n" "$@" > "$RALPH_TEST_CODEX_ARGS_PATH"; fi' > "$TEST_CODEX_BIN/codex"
 printf '%s\n' '#!/usr/bin/env bash' 'echo "0.87.0"' > "$TEST_CODEX_BIN/devcontainer"
 chmod +x "$TEST_CODEX_BIN/codex" "$TEST_CODEX_BIN/devcontainer"
 PATH="$TEST_CODEX_BIN:$PATH"
@@ -172,6 +176,102 @@ test_getopt_compatibility_is_scoped() {
   delegated="$(RALPH_SYSTEM_GETOPT="$delegate" "$compat" --foreign option)"
   [[ "$delegated" == 'delegated:--foreign option' ]] || fail_test "getopt helper did not delegate an unrelated invocation"
   echo "[OK] Ralph getopt compatibility is narrowly scoped"
+}
+
+test_codex_model_deferral_is_scoped() {
+  local arguments="$TEST_ROOT/codex-shim-args"
+
+  RALPH_SYSTEM_CODEX="$TEST_CODEX_BIN/codex" \
+    RALPH_CODEX_DEFER_MODEL=1 \
+    RALPH_CODEX_UPSTREAM_DEFAULT_MODEL=gpt-5.2-codex \
+    RALPH_TEST_CODEX_ARGS_PATH="$arguments" \
+    "$CODEX_SHIM" exec --json --model gpt-5.2-codex prompt
+  ! grep -Fqx -- '--model' "$arguments" || fail_test "Codex shim retained Ralph's upstream model option"
+  ! grep -Fqx 'gpt-5.2-codex' "$arguments" || fail_test "Codex shim retained Ralph's upstream model value"
+  grep -Fqx exec "$arguments" || fail_test "Codex shim did not preserve the exec command"
+  grep -Fqx prompt "$arguments" || fail_test "Codex shim did not preserve the prompt"
+
+  RALPH_SYSTEM_CODEX="$TEST_CODEX_BIN/codex" \
+    RALPH_CODEX_DEFER_MODEL=0 \
+    RALPH_CODEX_UPSTREAM_DEFAULT_MODEL=gpt-5.2-codex \
+    RALPH_TEST_CODEX_ARGS_PATH="$arguments" \
+    "$CODEX_SHIM" exec --json --model gpt-5.6-sol prompt
+  grep -Fqx -- '--model' "$arguments" || fail_test "Codex shim removed an explicit model option"
+  grep -Fqx 'gpt-5.6-sol' "$arguments" || fail_test "Codex shim removed an explicit model value"
+
+  if RALPH_SYSTEM_CODEX="$TEST_CODEX_BIN/codex" \
+    RALPH_CODEX_DEFER_MODEL=1 \
+    RALPH_CODEX_UPSTREAM_DEFAULT_MODEL=gpt-5.2-codex \
+    "$CODEX_SHIM" exec --json --model unexpected-model prompt >"$TEST_ROOT/codex-shim-drift.log" 2>&1; then
+    fail_test "Codex shim accepted an unknown upstream model contract"
+  fi
+  grep -Fq 'refusing an unknown command contract' "$TEST_ROOT/codex-shim-drift.log" ||
+    fail_test "Codex shim contract-drift failure was not actionable"
+  echo "[OK] Ralph Codex model deferral is narrowly scoped"
+}
+
+test_runner_defers_to_codex_model_configuration() {
+  local repository="$TEST_ROOT/model-deferral"
+  local fake_bin="$TEST_ROOT/model-deferral-bin"
+  local config="$TEST_ROOT/model-deferral-config"
+  local managed_ralph="$fake_bin/managed-ralph"
+  local arguments="$TEST_ROOT/model-deferral-args"
+
+  mkdir -p "$repository" "$fake_bin"
+  git -C "$repository" init -q
+  git -C "$repository" config user.name 'Codex Test'
+  git -C "$repository" config user.email 'codex-test@example.invalid'
+  git -C "$repository" commit -q --allow-empty -m 'base'
+  write_unsafe_prompt "$config/prompts/build.md"
+  printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'model=gpt-5.2-codex' \
+    'while [[ "$#" -gt 0 ]]; do' \
+    '  case "$1" in' \
+    '    -m|--model) model="$2"; shift 2 ;;' \
+    '    --model=*) model="${1#*=}"; shift ;;' \
+    '    *) shift ;;' \
+    '  esac' \
+    'done' \
+    'codex exec --dangerously-bypass-approvals-and-sandbox --json --model "$model" prompt' > "$managed_ralph"
+  chmod +x "$managed_ralph"
+  set_test_ralph_pin "$managed_ralph"
+
+  (
+    cd "$repository"
+    RALPH_BIN_PATH="$managed_ralph" \
+      RALPH_CONFIG_DIR="$config" \
+      RALPH_TEST_CODEX_ARGS_PATH="$arguments" \
+      "$RUN_SAFE" -b codex -n 1
+  ) >"$TEST_ROOT/model-deferral.log" 2>&1
+
+  ! grep -Fqx -- '--model' "$arguments" || fail_test "guarded runner retained Ralph's upstream model option"
+  ! grep -Fqx 'gpt-5.2-codex' "$arguments" || fail_test "guarded runner retained Ralph's upstream model value"
+  grep -Fqx -- '--json' "$arguments" || fail_test "guarded runner did not preserve Codex arguments"
+  grep -Fq 'will let Codex choose its configured model' "$TEST_ROOT/model-deferral.log" ||
+    fail_test "guarded runner did not explain Ralph's stale model banner"
+
+  (
+    cd "$repository"
+    RALPH_BIN_PATH="$managed_ralph" \
+      RALPH_CONFIG_DIR="$config" \
+      RALPH_TEST_CODEX_ARGS_PATH="$arguments" \
+      "$RUN_SAFE" -b codex -n 1 --model gpt-5.6-sol
+  )
+  grep -Fqx -- '--model' "$arguments" || fail_test "guarded runner removed an explicit model option"
+  grep -Fqx 'gpt-5.6-sol' "$arguments" || fail_test "guarded runner did not preserve an explicit model value"
+
+  (
+    cd "$repository"
+    RALPH_BIN_PATH="$managed_ralph" \
+      RALPH_CONFIG_DIR="$config" \
+      RALPH_GLOBAL_SKILL_MODEL=gpt-5.7 \
+      RALPH_TEST_CODEX_ARGS_PATH="$arguments" \
+      "$RUN_SAFE" -b codex -n 1
+  )
+  grep -Fqx -- '--model' "$arguments" || fail_test "guarded runner removed the configured model option"
+  grep -Fqx 'gpt-5.7' "$arguments" || fail_test "guarded runner did not preserve the configured model value"
+  echo "[OK] guarded Ralph defers model choice to Codex unless explicitly overridden"
 }
 
 test_runner_blocks_configured_remote() {
@@ -975,6 +1075,8 @@ test_sandbox_launcher_mounts_verified_ralph() {
 
 test_prompt_sanitization
 test_getopt_compatibility_is_scoped
+test_codex_model_deferral_is_scoped
+test_runner_defers_to_codex_model_configuration
 test_runner_blocks_configured_remote
 test_runner_preserves_existing_prompt
 test_runner_leaves_repository_commit_policy_to_supervisor

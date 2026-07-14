@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -z "${RALPH_SYSTEM_CODEX:-}" || ! -x "$RALPH_SYSTEM_CODEX" ]]; then
+  echo "Verified Codex CLI is unavailable to the guarded Ralph shim" >&2
+  exit 1
+fi
+
+if [[ "${RALPH_CODEX_DEFER_MODEL:-0}" != "1" ]]; then
+  exec "$RALPH_SYSTEM_CODEX" "$@"
+fi
+
+if [[ "${1:-}" != "exec" ]]; then
+  echo "Guarded Ralph model deferral expected a Codex exec command" >&2
+  exit 1
+fi
+if [[ -z "${RALPH_CODEX_UPSTREAM_DEFAULT_MODEL:-}" ]]; then
+  echo "Guarded Ralph upstream Codex model contract is missing" >&2
+  exit 1
+fi
+
+arguments=()
+removed_model=0
+while [[ "$#" -gt 0 ]]; do
+  if [[ "$1" == "--model" && "${2:-}" == "$RALPH_CODEX_UPSTREAM_DEFAULT_MODEL" && "$removed_model" -eq 0 ]]; then
+    removed_model=1
+    shift 2
+    continue
+  fi
+  if [[ "$1" == "--model=$RALPH_CODEX_UPSTREAM_DEFAULT_MODEL" && "$removed_model" -eq 0 ]]; then
+    removed_model=1
+    shift
+    continue
+  fi
+  arguments+=("$1")
+  shift
+done
+
+if [[ "$removed_model" -ne 1 ]]; then
+  echo "Pinned Ralph did not supply its reviewed upstream Codex model default; refusing an unknown command contract" >&2
+  exit 1
+fi
+
+exec "$RALPH_SYSTEM_CODEX" "${arguments[@]}"
