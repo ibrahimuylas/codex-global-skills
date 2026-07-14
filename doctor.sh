@@ -318,10 +318,10 @@ check_dependencies() {
         fi
         if verify_regular_file_sha256 "$RALPH_DEFAULTS_FILE" "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256" &&
           grep -Fxq 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$RALPH_DEFAULTS_FILE" &&
-          grep -Fxq 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5.6-sol}"' "$RALPH_DEFAULTS_FILE"; then
-          ok "managed Ralph global-skill defaults use Codex with supported model default"
+          ! grep -Eq '^RALPH_GLOBAL_SKILL_MODEL=' "$RALPH_DEFAULTS_FILE"; then
+          ok "managed Ralph global-skill defaults use Codex without forcing a model"
         else
-          fail "managed Ralph global-skill defaults are missing, modified, or not set to Codex with the reviewed model"
+          fail "managed Ralph global-skill defaults are missing, modified, forcing a model, or not set to Codex"
         fi
         if verify_regular_file_sha256 "$RALPH_CONFIG_DIR/prompts/build.md" "$RALPH_PIN_BUILD_PROMPT_SHA256"; then
           ok "pinned Ralph build prompt"

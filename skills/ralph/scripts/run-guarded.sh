@@ -435,7 +435,7 @@ if [[ "${RALPH_GLOBAL_SKILL_BACKEND:-}" != "codex" ]]; then
   echo "Managed Ralph global skill must use the Codex backend" >&2
   exit 1
 fi
-if [[ -z "${RALPH_GLOBAL_SKILL_MODEL:-}" || ! "$RALPH_GLOBAL_SKILL_MODEL" =~ ^[A-Za-z0-9._-]+$ ]]; then
+if [[ -n "${RALPH_GLOBAL_SKILL_MODEL:-}" && ! "$RALPH_GLOBAL_SKILL_MODEL" =~ ^[A-Za-z0-9._-]+$ ]]; then
   echo "Managed Ralph global skill model is missing or invalid" >&2
   exit 1
 fi
@@ -487,7 +487,7 @@ if [[ "$MODE" == "plan" ]]; then
 fi
 ralph_status=0
 ralph_arguments=(--skip-push)
-if [[ "$MODEL_ARGUMENT_SUPPLIED" -eq 0 ]]; then
+if [[ "$MODEL_ARGUMENT_SUPPLIED" -eq 0 && -n "${RALPH_GLOBAL_SKILL_MODEL:-}" ]]; then
   ralph_arguments+=(--model "$RALPH_GLOBAL_SKILL_MODEL")
 fi
 if [[ "${#NORMALIZED_RALPH_ARGUMENTS[@]}" -gt 0 ]]; then
