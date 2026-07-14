@@ -317,10 +317,11 @@ check_dependencies() {
           fail "managed Ralph CLI is missing, non-executable, or differs from the reviewed pin"
         fi
         if verify_regular_file_sha256 "$RALPH_DEFAULTS_FILE" "$RALPH_PIN_GLOBAL_SKILL_DEFAULTS_SHA256" &&
-          grep -Fxq 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$RALPH_DEFAULTS_FILE"; then
-          ok "managed Ralph global-skill defaults use Codex"
+          grep -Fxq 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$RALPH_DEFAULTS_FILE" &&
+          grep -Fxq 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5-codex}"' "$RALPH_DEFAULTS_FILE"; then
+          ok "managed Ralph global-skill defaults use Codex with supported model default"
         else
-          fail "managed Ralph global-skill defaults are missing, modified, or not set to Codex"
+          fail "managed Ralph global-skill defaults are missing, modified, or not set to Codex with the reviewed model"
         fi
         if verify_regular_file_sha256 "$RALPH_CONFIG_DIR/prompts/build.md" "$RALPH_PIN_BUILD_PROMPT_SHA256"; then
           ok "pinned Ralph build prompt"

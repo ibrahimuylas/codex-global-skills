@@ -220,6 +220,8 @@ test_reviewed_ralph_runtime_preserves_user_config() {
   [[ -x "$bin/ralph" ]] || fail_test "reviewed Ralph CLI was not installed executable"
   [[ -f "$config/prompts/plan.md" && -f "$config/container/devcontainer.json" ]] || fail_test "reviewed Ralph config was incomplete"
   grep -Fqx 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$config/global-skill.env" || fail_test "reviewed Ralph config did not set Codex as the global-skill backend"
+  grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5-codex}"' "$config/global-skill.env" ||
+    fail_test "reviewed Ralph config did not set the global-skill Codex model"
   grep -Fqx 'user-owned extra config' "$config/custom.txt" || fail_test "Ralph runtime install changed unrelated config"
 
   printf '%s\n' 'user customization' > "$config/prompts/plan.md"
@@ -304,9 +306,11 @@ test_contract_scoped_ralph_runtime_upgrades_without_overwrite() {
 
     grep -Fq 'version-one' "$first_runtime/bin/ralph"
     grep -Fqx 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$first_runtime/config/global-skill.env"
+    grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5-codex}"' "$first_runtime/config/global-skill.env"
     grep -Fq 'plan one' "$first_runtime/config/prompts/plan.md"
     grep -Fq 'version-two' "$second_runtime/bin/ralph"
     grep -Fqx 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$second_runtime/config/global-skill.env"
+    grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5-codex}"' "$second_runtime/config/global-skill.env"
     grep -Fq 'plan two' "$second_runtime/config/prompts/plan.md"
 
     printf '%s\n' '#!/usr/bin/env bash' 'echo version-three' > "$source/ralph"

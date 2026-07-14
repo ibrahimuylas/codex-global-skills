@@ -17,6 +17,7 @@ SYSTEM_GIT="$(command -v git 2>/dev/null || true)"
 CREATED_PROMPT=0
 CREATED_PROMPT_HASH=""
 NORMALIZED_RALPH_ARGUMENTS=()
+MODEL_ARGUMENT_SUPPLIED=0
 
 if [[ ! -f "$RALPH_PIN_FILE" || -L "$RALPH_PIN_FILE" ]]; then
   echo "Reviewed Ralph pin contract is missing or invalid: $RALPH_PIN_FILE" >&2
@@ -224,7 +225,12 @@ normalize_ralph_arguments() {
         NORMALIZED_RALPH_ARGUMENTS+=("$1" "$2")
         shift 2
         ;;
-      -g|--goal|-m|--model)
+      -g|--goal)
+        NORMALIZED_RALPH_ARGUMENTS+=("$1" "$2")
+        shift 2
+        ;;
+      -m|--model)
+        MODEL_ARGUMENT_SUPPLIED=1
         NORMALIZED_RALPH_ARGUMENTS+=("$1" "$2")
         shift 2
         ;;
@@ -429,6 +435,10 @@ if [[ "${RALPH_GLOBAL_SKILL_BACKEND:-}" != "codex" ]]; then
   echo "Managed Ralph global skill must use the Codex backend" >&2
   exit 1
 fi
+if [[ -z "${RALPH_GLOBAL_SKILL_MODEL:-}" || ! "$RALPH_GLOBAL_SKILL_MODEL" =~ ^[A-Za-z0-9._-]+$ ]]; then
+  echo "Managed Ralph global skill model is missing or invalid" >&2
+  exit 1
+fi
 normalize_ralph_arguments "$@"
 
 if [[ -e "$LOCAL_PROMPT" || -L "$LOCAL_PROMPT" ]]; then
@@ -477,6 +487,9 @@ if [[ "$MODE" == "plan" ]]; then
 fi
 ralph_status=0
 ralph_arguments=(--skip-push)
+if [[ "$MODEL_ARGUMENT_SUPPLIED" -eq 0 ]]; then
+  ralph_arguments+=(--model "$RALPH_GLOBAL_SKILL_MODEL")
+fi
 if [[ "${#NORMALIZED_RALPH_ARGUMENTS[@]}" -gt 0 ]]; then
   ralph_arguments+=("${NORMALIZED_RALPH_ARGUMENTS[@]}")
 fi

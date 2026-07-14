@@ -29,7 +29,7 @@ Use ralph with EE rules to create a spec and plan it.
 - Reads repository instructions, branch and working-tree state, diffs, specs, plans, progress, and Ralph configuration before mutations.
 - Creates the next numbered spec under `specs/`, or updates a named spec only when requested.
 - Uses `scripts/init-safe.sh` only when required artifacts are absent. It creates missing `specs/`, `IMPLEMENTATION_PLAN.md`, and `PROGRESS.md` without touching `.gitignore`, `.claude/`, or existing artifacts.
-- Uses the managed Codex backend default from `global-skill.env`; raw Ralph remains unchanged and may keep its own default elsewhere.
+- Uses the managed Codex backend and model defaults from `global-skill.env`; raw Ralph remains unchanged and may keep its own defaults elsewhere.
 - Uses a guarded planner and the bundled uncommitted-build wrapper; raw `ralph init`, `ralph plan`, and `ralph build` are not used.
 - The planner permits changes only to `IMPLEMENTATION_PLAN.md` and `specs/`; any new Git-visible mutation elsewhere fails while preserving evidence.
 - Requires a clean build workspace unless all existing changes are confirmed build inputs.
@@ -48,9 +48,9 @@ The skill resolves its installed directory and uses these helpers rather than ra
 
 The pinned Ralph backend prompt invokes Ralph's bundled commit skill, which imposes Conventional Commits and an attribution footer even when a repository has different rules. It also contains `git push`, which runs before Ralph's wrapper evaluates `--skip-push`.
 
-Therefore the skill uses guarded plan/build helpers that verify and execute the managed pinned Ralph binary directly (ignoring PATH shadows), source the managed `global-skill.env` default, normalize every Ralph option, append the managed Codex backend defensively, substitute byte-for-byte reviewed prompts, and keep initialization independent of Ralph's opinionated scaffold. On the host the default binary lives under `${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}/ralph-runtimes/<runtime-id>/bin/ralph`; inside Ralph's devcontainer it verifies the contract-scoped `/usr/local/bin/ralph` mount.
+Therefore the skill uses guarded plan/build helpers that verify and execute the managed pinned Ralph binary directly (ignoring PATH shadows), source the managed `global-skill.env` defaults, normalize every Ralph option, append the managed Codex backend and model defensively, substitute byte-for-byte reviewed prompts, and keep initialization independent of Ralph's opinionated scaffold. On the host the default binary lives under `${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}/ralph-runtimes/<runtime-id>/bin/ralph`; inside Ralph's devcontainer it verifies the contract-scoped `/usr/local/bin/ralph` mount.
 
-The runner also enforces the reviewed Codex CLI version, checksum-reviewed `global-skill.env`, and Codex backend. A stale host CLI, modified managed defaults file, or sandbox rebuilt with a different Codex version fails before the agent loop starts.
+The runner also enforces the reviewed Codex CLI version, checksum-reviewed `global-skill.env`, Codex backend, and managed model default. A stale host CLI, modified managed defaults file, or sandbox rebuilt with a different Codex version fails before the agent loop starts.
 
 For defense in depth, the guarded runner blocks ordinary `git push` and `git send-pack` commands, including literal-URL pushes, overrides configured remote push URLs, and supplies `--skip-push` before caller options. This is not a network sandbox: an unrestricted backend could invoke an absolute binary, alter its environment, or use another network client. The skill reports this residual boundary and never describes publication as technically impossible.
 
@@ -76,7 +76,9 @@ The `ralph` and `developer` packs require:
 - OpenAI Codex CLI `0.143.0`, synchronized from `@openai/codex@0.143.0` when explicitly requested
 - Devcontainer CLI `0.87.0`, synchronized from `@devcontainers/cli@0.87.0` when explicitly requested
 
-`./install.sh` checks these commands and exact versions without changing the machine. Use `./install.sh --pack ralph --install-dependencies` to install missing or mismatched pinned dependencies and synchronize the managed Ralph checkout. Instead of running Ralph's upstream installer against personal configuration, it publishes only checksum-reviewed files under `${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}/ralph-runtimes/<runtime-id>/`, including `global-skill.env` with `RALPH_GLOBAL_SKILL_BACKEND=codex`. A future pin receives a new directory, so the prior runtime remains intact and a partial publish can be rolled back safely. Ralph need not be on `PATH`, and the installer never edits a shell profile or changes raw Ralph's default for other tools.
+`./install.sh` checks these commands and exact versions without changing the machine. Use `./install.sh --pack ralph --install-dependencies` to install missing or mismatched pinned dependencies and synchronize the managed Ralph checkout. Instead of running Ralph's upstream installer against personal configuration, it publishes only checksum-reviewed files under `${CODEX_GLOBAL_SKILLS_HOME:-$HOME/.local/share/codex-global-skills}/ralph-runtimes/<runtime-id>/`, including `global-skill.env` with `RALPH_GLOBAL_SKILL_BACKEND=codex` and a managed Codex model default of `gpt-5-codex`. A future pin receives a new directory, so the prior runtime remains intact and a partial publish can be rolled back safely. Ralph need not be on `PATH`, and the installer never edits a shell profile or changes raw Ralph's default for other tools.
+
+Set `RALPH_GLOBAL_SKILL_MODEL` before invoking the guarded wrapper when a specific account or Codex installation needs a different supported model. An explicit `--model` argument takes precedence for that one run.
 
 Project-specific setup uses the bundled safe initializer, not raw `ralph init`, so Ralph's `.claude/skills/commit` scaffold is never introduced by this global workflow.
 

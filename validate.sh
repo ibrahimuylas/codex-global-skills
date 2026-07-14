@@ -251,6 +251,12 @@ validate_ralph_pin() {
     fail "guarded Ralph global-skill defaults differ from their pin"
   grep -Fqx 'RALPH_GLOBAL_SKILL_BACKEND=codex' "$SCRIPT_DIR/skills/ralph/assets/global-skill.env" ||
     fail "guarded Ralph global-skill defaults do not select Codex"
+  grep -Fqx 'RALPH_GLOBAL_SKILL_MODEL="${RALPH_GLOBAL_SKILL_MODEL:-gpt-5-codex}"' "$SCRIPT_DIR/skills/ralph/assets/global-skill.env" ||
+    fail "guarded Ralph global-skill defaults do not select the reviewed Codex model"
+  grep -Fq 'MODEL_ARGUMENT_SUPPLIED=1' "$SCRIPT_DIR/skills/ralph/scripts/run-guarded.sh" ||
+    fail "Ralph guarded runner does not preserve explicit model requests"
+  grep -Fq -- '--model "$RALPH_GLOBAL_SKILL_MODEL"' "$SCRIPT_DIR/skills/ralph/scripts/run-guarded.sh" ||
+    fail "Ralph guarded runner does not pass the managed Codex model"
   grep -Fq "@openai/codex@$codex_version" "$SCRIPT_DIR/skills/ralph/assets/Dockerfile.safe" || fail "guarded Ralph Dockerfile does not use the Codex pin"
   if grep -Eq 'docker\.sock|network=host|localEnv:HOME|/home/node/\.ssh|/home/node/\.config/gh' "$SCRIPT_DIR/skills/ralph/assets/devcontainer.safe.json"; then
     fail "guarded Ralph devcontainer exposes a host escape or host credential mount"
